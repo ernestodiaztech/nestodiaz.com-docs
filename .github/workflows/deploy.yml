@@ -1,0 +1,69 @@
+name: Deploy Documentation
+
+# Trigger: Run this workflow when code is pushed to main branch
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Get the code from GitHub
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      # Step 2: Set up Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+        
+      # Step 4: Build the site
+      - name: Build Docusaurus site
+        run: npm run build
+        
+      # Step 5: Deploy to your server
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "Starting deployment..."
+            cd /home/nesto/nesto-docs-site/my-website
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Install/update dependencies
+            npm ci
+            
+            # Build the site
+            npm run build
+            
+            # Restart the service
+            sudo systemctl restart docusaurus
+            
+            # Verify service is running
+            sleep 5
+            systemctl is-active docusaurus
+            
+            echo "Deployment completed successfully!"
+            
+      # Step 6: Verify deployment
+      - name: Health check
+        run: |
+          echo "Waiting for service to be ready..."
+          sleep 10
+          # You can add a curl check here if you have a public URL
+          # curl -f https://your-domain.com || exit 1
