@@ -150,3 +150,15 @@ export const Highlight = ({children, color}) => (
 This is <Highlight color="#25c2a0">Docusaurus green</Highlight> !
 
 This is <Highlight color="#1877F2">Facebook blue</Highlight> !
+
+
+### Highlighting Lines
+```markdown
+```javascript {2,4-6}
+function example() {
+  console.log("This line is highlighted");
+  console.log("Normal line");
+  console.log("These lines");
+  console.log("are also");
+  console.log("highlighted");
+}
