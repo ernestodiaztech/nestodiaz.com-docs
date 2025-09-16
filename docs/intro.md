@@ -2,10 +2,10 @@
 sidebar_position: 1
 ---
 
-# Tutorial Intro
+# Projects
 
 Let's discover **Docusaurus in less than 5 minutes**.
-Test change #3
+Test change #4
 
 ## Getting Started
 

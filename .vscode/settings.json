@@ -1,0 +1,23 @@
+{
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "markdown.preview.doubleClickToSwitchToEditor": false,
+    "markdown.preview.markEditorSelection": true,
+    "files.associations": {
+        "*.md": "markdown",
+        "*.mdx": "markdown"
+    },
+    "emmet.includeLanguages": {
+        "markdown": "html"
+    },
+    "editor.quickSuggestions": {
+        "strings": true
+    },
+    "editor.minimap.enabled": true,
+    "editor.wordWrap": "on",
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "terminal.integrated.defaultProfile.windows": "Git Bash"
+}
