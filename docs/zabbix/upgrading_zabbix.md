@@ -12,15 +12,15 @@ I started off by making backups of my VM’s on Proxmox. That way I can easily r
 
 I selected the VM.
 
-pic
+![01](./assets/zabbix-upgrade-01.png)
 
 Then went to `Backup` ➥ `Backup now`.
 
-pic
+![02](./assets/zabbix-upgrade-02.png)
 
 Then clicked `Backup`. I did this for all 3 virtual machines.
 
-pic
+![03](./assets/zabbix-upgrade-03.png)
 
 ### Zabbix-HA1 & HA2
 
