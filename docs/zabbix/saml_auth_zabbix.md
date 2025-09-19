@@ -12,11 +12,11 @@ I need a default user group that users will be placed in upon their initial logi
 
 To create a group I went to `Users` ➥ `User groups`.
 
-1st pic
+![01](./assets/zabbix-uag-01.jpg)
 
 I then made a group for called Networking, who will have access to all network devices.
 
-2nd pic
+![02](./assets/zabbix-uag-02.jpg)
 
 :::info[Command Explanation]
 
@@ -28,11 +28,11 @@ I then made a group for called Networking, who will have access to all network d
 
 Then I went to the `Template permissions` tab and clicked `Select`.
 
-3rd pic
+![03](./assets/zabbix-uag-03.jpg)
 
 Here I chose `Template/Network devices`.
 
-4th pic
+![04](./assets/zabbix-uag-04.jpg)
 
 I then set `Permissions` to `Read-write` and clicked `Add`.
 
@@ -42,11 +42,11 @@ I then needed to create a default role that will be given to users on their firs
 
 I went to `Users` ➥ `User roles`.
 
-Pic
+![10](./assets/zabbix-uag-10.jpg)
 
 I made the following permission changes.
 
-pic
+![12](./assets/zabbix-uag-12.jpg)
 
 :::info[Explanation]
 
@@ -58,11 +58,11 @@ pic
 
 Then scrolled down to `Access to actions` and selected `Manage scheduled reports` and `Manage SLA`.
 
-pic
+![13](./assets/zabbix-uag-13.jpg)
 
 When they log in, they will only see `Maintenance` under `Data Collection`.
 
-pic
+![14](./assets/zabbix-uag-14.jpg)
 
 ## Azure AD
 
@@ -72,11 +72,11 @@ I only wanted people assigned to a certain security group to have access to Zabb
 
 First, I logged in to the Entra Identity portal and went to Groups ➥ All groups.
 
-pic
+![01](./assets/azure-setup-01.jpg)
 
 I then clicked on `New Group`.
 
-pic
+![02](./assets/azure-setup-02.jpg)
 
 :::info[Explanation]
 
@@ -93,37 +93,37 @@ I now needed to create the application and link it to my Zabbix domain.
 
 On the left-side menu I went to `Applications` ➥ `Enterprise applications`.
 
-pic
+![03](./assets/azure-setup-03.jpg)
 
 I clicked on `Create your own application` and selected `Integrate any other application you don’t find in the gallery`.
 
-pic
+![25](./assets/zabbix-uag-25.jpg)
 
 Then went to `Users and group`.
 
-pic
+![04](./assets/azure-setup-04.jpg)
 
 and added the Zabbix group I created earlier.
 
-pic
+![05](./assets/azure-setup-05.jpg)
 
 Next, I went to `Single sign-on`.
 
-pic
+![06](./assets/azure-setup-06.jpg)
 
 I selected SAML as the sign-on method.
 
-pic
+![08](./assets/zabbix-uag-28.jpg)
 
 I filled out the Basic SAML Configuration.
 
 I then created the following Attributes & Claims.
 
-pic
+![08](./assets/azure-setup-08.jpg)
 
 The SAML Certificates section will be automatically populated. I just downloaded the certificate so that I can paste it’s contents into a new file within the Ubuntu server.
 
-pic
+![09](./assets/azure-setup-09.jpg)
 
 ### Zabbix Server
 
@@ -185,23 +185,23 @@ Now to setup the frontend so users can login with SSO.
 
 First, I went to `Users` ➥ `Authentication`.
 
-pic
+![01](./assets/zabbix-auth-01.jpg)
 
 On the Authentication tab I have to select a deprovisioned users group or else it won’t let me setup SAML.
 
-pic
+![02](./assets/zabbix-auth-02.jpg)
 
 The only option is `Disabled`.
 
-pic
+![03](./assets/zabbix-auth-03.jpg)
 
 For the next part I needed the URL’s provided at the `Set up Zabbix` section.
 
-pic
+![05](./assets/zabbix-auth-05.jpg)
 
 Onto the SAML settings tab.
 
-pic
+![04](./assets/zabbix-auth-04.jpg)
 
 :::info[Explanation]
 
@@ -218,7 +218,7 @@ pic
 
 Then I scrolled down and configured the attributes.
 
-pic
+![06](./assets/zabbix-auth-06.jpg)
 
 :::info[Explanation]
 
@@ -235,8 +235,8 @@ pic
 
 Now if you go back to the login screen there will be a link for Sign in with Single Sign-On (SAML).
 
-pic
+![35](./assets/zabbix-uag-35.jpg)
 
 Finally, users can sign in using their Microsoft credentials. If you have 2FA setup, it’ll prompt them for their 2FA code as well.
 
-pic
+![36](./assets/zabbix-uag-36.jpg)
