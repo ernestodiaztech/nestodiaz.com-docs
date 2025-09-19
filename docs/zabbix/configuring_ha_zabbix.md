@@ -385,15 +385,15 @@ http://10.33.99.105/
 
 First page will be the language select.
 
-![Example banner](https://nestodiaz.com/wp-content/uploads/2025/01/install-7-ha-01.jpg)
+![Example banner](./assets/install-7-ha-01.jpg)
 
 I verified everything was ‘OK’.
 
-![Example banner](https://nestodiaz.com/wp-content/uploads/2025/01/install-7-ha-02.jpg)
+![Example banner](./assets/install-7-ha-02.jpg)
 
 Then I configured the database connection.
 
-![Example banner](https://nestodiaz.com/wp-content/uploads/2025/01/install-7-ha-03.jpg)
+![Example banner](./assets/install-7-ha-03.jpg)
 
 :::info[Info]
 
@@ -405,15 +405,15 @@ Then I configured the database connection.
 
 Then I named it after zabbix-ha1.
 
-![Example banner](https://nestodiaz.com/wp-content/uploads/2025/01/install-7-ha-04.jpg)
+![Example banner](./assets/install-7-ha-04.jpg)
 
 Summary page.
 
-![Example banner](https://nestodiaz.com/wp-content/uploads/2025/01/install-7-ha-05.jpg)
+![Example banner](./assets/install-7-ha-05.jpg)
 
 Then clicked ‘Finish’.
 
-![Example banner](https://nestodiaz.com/wp-content/uploads/2025/01/install-7-ha-06.jpg)
+![Example banner](./assets/install-7-ha-06.jpg)
 
 I then stopped Nginx on zabbix-ha1.
 
@@ -431,7 +431,7 @@ And did everything the same as earlier.
 
 The only difference is that I made sure to name it after zabbix-ha2.
 
-![Example banner](https://nestodiaz.com/wp-content/uploads/2025/01/install-7-ha-10.jpg)
+![Example banner](./assets/install-7-ha-10.jpg)
 
 Then I went back to zabbix-ha1 and started Nginx.
 
