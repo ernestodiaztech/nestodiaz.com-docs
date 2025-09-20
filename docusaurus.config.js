@@ -82,7 +82,8 @@ const config = {
         title: "Nesto",
         logo: {
           alt: "My Site Logo",
-          src: "img/mylogo.svg",
+          src: "img/lightlogo.svg",
+          srcDark: "img/mylogo.svg",
         },
         items: [
           {
