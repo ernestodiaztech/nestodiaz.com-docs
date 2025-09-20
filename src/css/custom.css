@@ -31,5 +31,10 @@
   --ifm-background-surface-color: #4d4d4d;
   --ifm-navbar-background-color: #303030;
   --ifm-footer-background-color: #363636;
+}
+
+[data-theme='dark'] .alert--info {
   --ifm-alert-background-color: #24406e;
+  --ifm-alert-border-color: #4a90e2;
+  --ifm-alert-foreground-color: #ffffff;
 }
