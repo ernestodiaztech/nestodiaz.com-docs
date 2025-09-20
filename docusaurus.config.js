@@ -147,7 +147,7 @@ const config = {
       },
       prism: {
         theme: prismThemes.github,
-        darkTheme: prismThemes.nightOwl,
+        darkTheme: prismThemes.prismjs,
       },
     }),
 };
