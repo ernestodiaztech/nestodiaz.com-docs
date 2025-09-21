@@ -6,7 +6,7 @@ sidebar_position: 2
 
 This section will go over how I installed Docusaurus, setup a Cloudflare tunnel, and installed a GitHub runner to avoid opening port 22 on my pfSense firewall.
 
-### Prerequisites
+## Prerequisites
 
 I first start off by updating and upgrading the packages.
 
@@ -102,7 +102,7 @@ I then created the production build.
 nmp run build
 ```
 
-## Serve
+### Serve
 
 :::info
 
@@ -173,7 +173,7 @@ Installing a GitHub runner will eliminate the need to expose SSH to the internet
 - Runner connects outbound to GitHub (no inbound ports needed)
 - Deploys locally without network traversal
 
-```
+```bash
 GitHub → Self-Hosted Runner (my network) → Local deployment
 ```
 
@@ -252,3 +252,110 @@ sudo systemctl list-unit-files | grep actions.runner
 ```
 
 :::
+
+### Workflow
+
+I now needed to modify the workflow file to use the GitHub runner.
+
+```bash
+cd ~/nesto-docs-site/my-website
+sudo nano .github/workflows/deploy.yml
+```
+
+```bash title="deploy.yml"
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: self-hosted  # Changed from ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code (automatically uses local runner)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js (if not already installed)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Build the site
+      - name: Build Docusaurus site
+        run: npm run build
+
+      # Step 5: Deploy locally (no SSH needed!)
+      - name: Deploy to production
+        run: |
+          echo "🚀 Starting local deployment at $(date)"
+
+          # Copy built files to production location
+          # Since we're running on the same machine, we can copy directly
+          sudo cp -r build/* /home/nesto/nesto-docs-site/my-website/build/
+
+          # Restart the production service
+          sudo systemctl restart docusaurus
+
+          # Wait and verify service is running
+          sleep 5
+          if systemctl is-active --quiet docusaurus; then
+            echo "✅ Deployment successful!"
+            echo "📊 Service status: $(systemctl is-active docusaurus)"
+          else
+            echo "❌ Service failed to start"
+            exit 1
+          fi
+
+      # Step 6: Health check
+      - name: Verify deployment
+        run: |
+          echo "🔍 Running health checks..."
+
+          # Test if the service is responding
+          sleep 10
+          if curl -f http://localhost:3000 > /dev/null 2>&1; then
+            echo "✅ Health check passed - site is responding"
+          else
+            echo "⚠️  Health check warning - site may not be responding"
+          fi
+
+          echo "🎉 Deployment completed at $(date)"
+```
+
+Then I needed to configure sudo permissions to allow the runner to restart the docusaurus service and copy files.
+
+```bash
+sudo visudo
+```
+
+:::note
+
+This is a safe way to edit the `sudoers` file.
+
+- The `sudoers` file defines who can use `sudo` and what commands they are allowed to run as another user (often root).
+- You can allow a specific user to run only certain administrative commands without needing the root password.
+- If you just run `sudo nano /etc/sudoers` you could accidently save a syntax error.
+
+  - A syntax error in `sudoers` can lock everyone out of `sudo`, making it impossible to perform administrative tasks without booting into recovery mode.
+
+- `visudo` - Opens the `sudoers` file in a safe editor and validates syntax before saving (if there's an error, it warns you instead of saving a broken config). It also prevents multiple people from editing the file at the same time to avoid conflicts.
+
+:::
+
+```bash title="visudo"
+nesto ALL=(ALL) NOPASSWD: /bin/systemctl restart docusaurus
+nesto ALL=(ALL) NOPASSWD: /bin/systemctl status docusaurus
+nesto ALL=(ALL) NOPASSWD: /bin/systemctl is-active docusaurus
+nesto ALL=(ALL) NOPASSWD: /bin/cp -r * /home/nesto/nesto-docs-site/my-website/build/
+```
