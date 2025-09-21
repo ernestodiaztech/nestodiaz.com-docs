@@ -4,6 +4,8 @@ sidebar_position: 2
 
 # Configuring High Availability Zabbix
 
+Zabbix is a powerful open-source monitoring solution that can monitor various services, servers, and network devices. In this blog, I will show how I installed the Zabbix server (version 7.0), configured it to use MariaDB as its database, and got it running on Ubuntu 22.04. I will also show how I setup 3 more Zabbix servers to ensure availability.
+
 :::info[Prerequisites]
 
 - 3 Ubunt 22.04 VMs
