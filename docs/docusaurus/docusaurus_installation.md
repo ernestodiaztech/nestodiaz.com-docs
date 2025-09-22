@@ -2,9 +2,9 @@
 sidebar_position: 2
 ---
 
-# Docusaurus Installation
+# Docusaurus Installation + Self-Hosted GitHub Runner
 
-This section will go over how I installed Docusaurus, setup a Cloudflare tunnel, and installed a GitHub runner to avoid opening port 22 on my pfSense firewall.
+This section goes over how I setup Docusaurus, a systemd service (via serve), Cloudflare Tunnel, and a GitHub self-hosted runner that deploys locally, so I don't have to expose port 22 on my pfSense firewall.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ sudo apt update && sudo apt upgrade -y
 
 Docusaurus requires Node.js 18.0 or higher.
 
-I install the latest LTS version.
+I installed the latest LTS version.
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
@@ -38,14 +38,14 @@ git --version
 
 ## Git Setup
 
-I first make the directory to host the files.
+I first made the directory to host the Docusaurus files.
 
 ```bash
-mkdir ~/my-docusaurus-site
-cd ~/my-docusaurus-site
+mkdir ~/nesto-docs-site
+cd ~/nesto-docs-site
 ```
 
-I then create a user for Git.
+I then created a user for Git.
 
 ```bash
 git config --global user.name "Ernesto Diaz"
@@ -61,9 +61,18 @@ git add -A
 git commit -m "Initial commit: empty workspace"
 ```
 
+:::info[Command Explanation]
+
+- `git init` - Makes the current folder a new Git repository by creating a hidden `.git/` directory.
+- `git branch -M main` - Sets the current branch to `main`.
+- `git add -A` - Stages all changes in the working tree for commit (new files, modifications, and deletions)
+- `git commit -m` - Create a commit from what's staged, with the given message.
+
+:::
+
 ## Installation
 
-Then create the Docusaurus site (within the `my-website/` directory).
+Then created the Docusaurus site (within the `my-website/` directory).
 
 ```bash
 npx create-docusaurus@latest my-website classic
@@ -110,7 +119,7 @@ dist/
 .env
 ```
 
-Then I commit this change.
+Then I committed the change.
 
 ```bash
 git add -A
@@ -166,7 +175,7 @@ After=network.target
 [Service]
 Type=simple
 User=nesto
-WorkingDirectory=/home/nesto/my-docusaurus-site/my-website
+WorkingDirectory=/home/nesto/nesto-docs-site/my-website
 ExecStart=/usr/bin/serve -s build -p 3000
 Restart=on-failure
 RestartSec=10
@@ -175,6 +184,30 @@ Environment=NODE_ENV=production
 [Install]
 WantedBy=multi-user.target
 ```
+
+:::info[Command Explanation]
+
+**[Unit]**
+
+- `Description=` - Friendly name you'll see in `systemctl status`.
+- `After=network.target` - Don't start until basic networking is up.
+
+**[Service]**
+
+- `Type=simple` - The process started by `ExecStart` is the service, systemd considers it "started" as soon as the process launches.
+- `User=nesto` - Run the service as the unprivileged user "nesto".
+- `WorkingDirectory=` - Sets the CWD for the process. Any relative paths in `ExecStart` are resolved here.
+- `ExecStart=`
+  - `serve` - Node static file server.
+  - `-s` - SPA mode (any 404 falls back to index.html).
+  - `build` - serve the `build/` folder.
+  - `-p 3000` - Listen on port 3000.
+
+**[Install]**
+
+- `WantedBy=` - Makes it start on boot.
+
+:::
 
 I then enabled and started the service.
 
@@ -211,74 +244,76 @@ I then created the `deploy.yml` file.
 ```bash title="deploy.yml"
 name: Deploy Documentation
 
-# Trigger: Run this workflow when code is pushed to main branch
 on:
   push:
     branches: [main]
-  workflow_dispatch: # Allow manual triggering
+  workflow_dispatch:
 
 jobs:
   deploy:
     name: Deploy to Production Server
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-latest 
     steps:
-      # Step 1: Get the code from GitHub
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
-      # Step 2: Set up Node.js environment
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      # Step 3: Install dependencies
-      - name: Install dependencies
-        run: npm ci
-
-      # Step 4: Build the site
-      - name: Build Docusaurus site
-        run: npm run build
-
-      # Step 5: Deploy to your server
-      - name: Deploy to server
+      - name: Deploy & build on server via SSH
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "Starting deployment..."
-            cd /home/nesto/nesto-docs-site/my-website
+            set -euo pipefail
+            echo "🚀 Starting deployment on server at $(date)"
 
-            # Pull latest changes
-            git pull origin main
+            cd /home/nesto/nesto-docs-site
 
-            # Install/update dependencies
-            npm ci
+            git pull --ff-only origin main
 
-            # Build the site
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
+
             npm run build
 
-            # Restart the service
-            sudo systemctl restart docusaurus
-
-            # Verify service is running
+            sudo systemctl restart docusaurus-prod
             sleep 5
-            systemctl is-active docusaurus
+            systemctl is-active --quiet docusaurus-prod
 
-            echo "Deployment completed successfully!"
+            curl -f http://localhost:3000 > /dev/null
 
-      # Step 6: Verify deployment
-      - name: Health check
-        run: |
-          echo "Waiting for service to be ready..."
-          sleep 10
-          # You can add a curl check here if you have a public URL
-          # curl -f https://your-domain.com || exit 1
+            echo "✅ Deployment completed successfully!"
+
 ```
+
+:::info[Command Explanation]
+
+**Top-level**
+
+- `name:` - The display name you'll see in GitHub Actions.
+- `on:` - Triggers for the workflow.
+
+**Job**
+
+- `jobs:` - A workflow can have 1+ jobs.
+- `deploy` - This job's ID.
+- `name:` - The job's display name.
+- `runs-on` - Where the job runs.
+
+**Steps**
+
+- Deploy & build on server via SSH
+  - `host: ${{ secrets.SERVER_HOST }}` - My server's DNS name (stored as a repo secret).
+  - `username: ${{ secrets.SERVER_USER }}` - Linux user to log in as.
+  - `key: ${{ secrets.SSH_PRIVATE_KEY }}` - the private SSH key (as a secret) that matches a public key in my server’s `~/.ssh/authorized_keys`.
+- `set -euo pipefail`
+  - `-e` - Exit on first error,
+  - `-u` - Error on undefined variables.
+  - `-o pipefail` - Make a pipeline fail if any command fails.
+  - `echo "🚀 Starting deployment on server at $(date)"` - Prints a timestamped banner to the job logs.
+
+:::
 
 Next, I generated a dedicated SSH key for GitHub Actions.
 
@@ -347,6 +382,15 @@ sudo visudo
 nesto ALL=(ALL) NOPASSWD: /bin/systemctl restart docusaurus, /bin/systemctl status docusaurus, /bin/systemctl is-active docusaurus
 ```
 
+:::info[Command Explanation]
+
+- `nesto` - The user who gets the special sudo rights.
+- `ALL` - From any host/tty (for local sudoers this is fine).
+- `(ALL)` - May run commands as any target user (default is root). You can make that explicit with (root) for clarity.
+- `NOPASSWD:` - No password prompt for the listed commands.
+
+:::
+
 I then added the workflow file to Git.
 
 ```bash
@@ -371,7 +415,7 @@ After this completed successfully, I blocked port 22 and setup a GitHub runner.
 
 Installing a GitHub runner will eliminate the need to expose SSH to the internet.
 
-:::info
+:::note
 
 - Runner software runs on local network.
 - Runner connects outbound to GitHub (no inbound ports needed)
@@ -404,7 +448,7 @@ tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
 ./config.sh --url https://github.com/ernestodiaztech/nestodiaz.com-docs --token ABCDEFGHIJK...
 ```
 
-:::note
+:::info
 
 When prompted, enter:
 
@@ -477,65 +521,77 @@ on:
 jobs:
   deploy:
     name: Deploy to Production Server
-    runs-on: self-hosted  # Changed from ubuntu-latest
+    runs-on: [self-hosted, linux, x64, docu]
 
     steps:
-      # Step 1: Checkout code (automatically uses local runner)
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Setup Node.js (if not already installed)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
 
-      # Step 3: Install dependencies
       - name: Install dependencies
         run: npm ci
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
-      # Step 4: Build the site
       - name: Build Docusaurus site
         run: npm run build
 
-      # Step 5: Deploy locally (no SSH needed!)
-      - name: Deploy to production
-        run: |
+      - name: Deploy to Production (local)
+       run: |
+          set -euo pipefail
           echo "🚀 Starting local deployment at $(date)"
-
-          # Copy built files to production location
-          # Since we're running on the same machine, we can copy directly
-          sudo cp -r build/* /home/nesto/nesto-docs-site/my-website/build/
-
-          # Restart the production service
-          sudo systemctl restart docusaurus
-
-          # Wait and verify service is running
+          sudo rsync -a --delete ./build/ /home/nesto/my-docusaurus-site/build/
+          sudo systemctl restart docusaurus-prod
           sleep 5
-          if systemctl is-active --quiet docusaurus; then
-            echo "✅ Deployment successful!"
-            echo "📊 Service status: $(systemctl is-active docusaurus)"
-          else
-            echo "❌ Service failed to start"
-            exit 1
-          fi
+          systemctl is-active --quiet docusaurus-prod
+          curl -f http://localhost:3000 > /dev/null && echo "✅ Up"
 
-      # Step 6: Health check
-      - name: Verify deployment
-        run: |
-          echo "🔍 Running health checks..."
-
-          # Test if the service is responding
-          sleep 10
-          if curl -f http://localhost:3000 > /dev/null 2>&1; then
-            echo "✅ Health check passed - site is responding"
-          else
-            echo "⚠️  Health check warning - site may not be responding"
-          fi
-
-          echo "🎉 Deployment completed at $(date)"
 ```
+
+:::info[Command Explanation]
+
+**Top-level**
+
+- `name:` - The display name you'll see in GitHub Actions.
+- `on:` - Triggers for the workflow.
+
+**Job**
+
+- `jobs:` - A workflow can have 1+ jobs.
+- `deploy` - This job's ID.
+- `name:` - The job's display name.
+- `runs-on` - Where the job runs.
+
+**Steps**
+
+- Checkout Repository
+  - `actions/checkout@v4` - Clones the repo into the runner's workspace so later steps can see the code.
+- Setup Node.js
+  - `actions/setup-node@v4` - Installs Node 18 on the runner.
+- Install Dependencies
+  - `npm ci` - Clean, reproducible install only when `package-lock.json` exists.
+  - `npm install` - Resolves and writes a lockfile if missing.
+- Build
+  - `run` - Runs Docusaurus build.
+- Deploy to Production (local)
+  - `set -euo pipefail`
+    - `-e` - Exit on first error.
+    - `-u` - Error on unset vars.
+    - `-o pipefail` - A pipe fails if any command fails.
+  - `rsync -a --delete ./build/ DEST/` - Copies the built files to the production directory.
+    - `-a` - Archive mode.
+    - `--delete` - Remove files at DEST that no longer exist in source.
+  - `curl -f http://localhost:3000` - Health check: `-f` makes curl fail on non-2xx. Output is discarded; prints “✅ Up” on success.
+
+:::
 
 Then I needed to configure sudo permissions to allow the runner to restart the docusaurus service and copy files.
 
