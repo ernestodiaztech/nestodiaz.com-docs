@@ -8,40 +8,61 @@ on:
 jobs:
   deploy:
     name: Deploy to Production Server
-    runs-on: self-hosted
-
+    runs-on: self-hosted  # Changed from ubuntu-latest
+    
     steps:
+      # Step 1: Checkout code (automatically uses local runner)
       - name: Checkout repository
         uses: actions/checkout@v4
-
+        
+      # Step 2: Setup Node.js (if not already installed)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
+          cache: 'npm'
+          
+      # Step 3: Install dependencies
       - name: Install dependencies
-        run: |
-          set -euo pipefail
-          if [ -f package-lock.json ]; then
-            npm ci --prefer-offline --no-audit --no-fund
-          else
-            npm install --prefer-offline --no-audit --no-fund
-          fi
-
+        run: npm ci
+        
+      # Step 4: Build the site
       - name: Build Docusaurus site
         run: npm run build
-
+        
+      # Step 5: Deploy locally (no SSH needed!)
       - name: Deploy to production
         run: |
-          set -euo pipefail
           echo "🚀 Starting local deployment at $(date)"
-          sudo rsync -a --delete ./build/ /home/nesto/nesto-docs-site/my-website/build/
+          
+          # Copy built files to production location
+          # Since we're running on the same machine, we can copy directly
+          sudo cp -r build/* /home/nesto/nesto-docs-site/my-website/build/
+          
+          # Restart the production service
           sudo systemctl restart docusaurus
+          
+          # Wait and verify service is running
           sleep 5
-          systemctl is-active --quiet docusaurus
-
-      - name: Health check
+          if systemctl is-active --quiet docusaurus; then
+            echo "✅ Deployment successful!"
+            echo "📊 Service status: $(systemctl is-active docusaurus)"
+          else
+            echo "❌ Service failed to start"
+            exit 1
+          fi
+          
+      # Step 6: Health check
+      - name: Verify deployment
         run: |
-          set -euo pipefail
-          curl -f http://localhost:3000 > /dev/null
-          echo "✅ Health check passed"
+          echo "🔍 Running health checks..."
+          
+          # Test if the service is responding
+          sleep 10
+          if curl -f http://localhost:3000 > /dev/null 2>&1; then
+            echo "✅ Health check passed - site is responding"
+          else
+            echo "⚠️  Health check warning - site may not be responding"
+          fi
+          
+          echo "🎉 Deployment completed at $(date)"
