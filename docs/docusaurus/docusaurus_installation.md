@@ -213,8 +213,8 @@ I then enabled and started the service.
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable docusaurus-prod
-sudo systemctl start docusaurus-prod
+sudo systemctl enable docusaurus
+sudo systemctl start docusaurus
 ```
 
 Now when I want to run the development server, I will change the port number, since the production server will be using port 3000.
@@ -521,39 +521,53 @@ on:
 jobs:
   deploy:
     name: Deploy to Production Server
-    runs-on: [self-hosted, linux, x64, docu]
-
+    runs-on: self-hosted
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+        
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-
+          
       - name: Install dependencies
         run: npm ci
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
-
+        
       - name: Build Docusaurus site
         run: npm run build
-
-      - name: Deploy to Production (local)
-       run: |
-          set -euo pipefail
+        
+      - name: Deploy to production
+        run: |
           echo "🚀 Starting local deployment at $(date)"
-          sudo rsync -a --delete ./build/ /home/nesto/my-docusaurus-site/build/
-          sudo systemctl restart docusaurus-prod
+          
+          sudo cp -r build/* /home/nesto/nesto-docs-site/my-website/build/
+          
+          sudo systemctl restart docusaurus
+          
           sleep 5
-          systemctl is-active --quiet docusaurus-prod
-          curl -f http://localhost:3000 > /dev/null && echo "✅ Up"
-
+          if systemctl is-active --quiet docusaurus; then
+            echo "✅ Deployment successful!"
+            echo "📊 Service status: $(systemctl is-active docusaurus)"
+          else
+            echo "❌ Service failed to start"
+            exit 1
+          fi
+          
+      - name: Verify deployment
+        run: |
+          echo "🔍 Running health checks..."
+          
+          sleep 10
+          if curl -f http://localhost:3000 > /dev/null 2>&1; then
+            echo "✅ Health check passed - site is responding"
+          else
+            echo "⚠️  Health check warning - site may not be responding"
+          fi
+          
+          echo "🎉 Deployment completed at $(date)"
 ```
 
 :::info[Command Explanation]
@@ -581,15 +595,6 @@ jobs:
   - `npm install` - Resolves and writes a lockfile if missing.
 - Build
   - `run` - Runs Docusaurus build.
-- Deploy to Production (local)
-  - `set -euo pipefail`
-    - `-e` - Exit on first error.
-    - `-u` - Error on unset vars.
-    - `-o pipefail` - A pipe fails if any command fails.
-  - `rsync -a --delete ./build/ DEST/` - Copies the built files to the production directory.
-    - `-a` - Archive mode.
-    - `--delete` - Remove files at DEST that no longer exist in source.
-  - `curl -f http://localhost:3000` - Health check: `-f` makes curl fail on non-2xx. Output is discarded; prints “✅ Up” on success.
 
 :::
 
@@ -614,9 +619,9 @@ This is a safe way to edit the `sudoers` file.
 :::
 
 ```bash title="visudo"
-nesto ALL=(ALL) NOPASSWD: /bin/systemctl restart docusaurus-prod
-nesto ALL=(ALL) NOPASSWD: /bin/systemctl status docusaurus-prod
-nesto ALL=(ALL) NOPASSWD: /bin/systemctl is-active docusaurus-prod
+nesto ALL=(ALL) NOPASSWD: /bin/systemctl restart docusaurus
+nesto ALL=(ALL) NOPASSWD: /bin/systemctl status docusaurus
+nesto ALL=(ALL) NOPASSWD: /bin/systemctl is-active docusaurus
 nesto ALL=(ALL) NOPASSWD: /bin/cp -r * /home/nesto/nesto-docs-site/my-website/build/
 ```
 
