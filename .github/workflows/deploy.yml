@@ -8,61 +8,46 @@ on:
 jobs:
   deploy:
     name: Deploy to Production Server
-    runs-on: self-hosted  # Changed from ubuntu-latest
-    
+    # You can keep just "self-hosted"; labels make targeting safer:
+    runs-on: [self-hosted, linux, X64, docu]
+
     steps:
-      # Step 1: Checkout code (automatically uses local runner)
       - name: Checkout repository
         uses: actions/checkout@v4
-        
-      # Step 2: Setup Node.js (if not already installed)
+
       - name: Setup Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
-          
-      # Step 3: Install dependencies
+          node-version: '18'        # removed: cache: 'npm'
+
       - name: Install dependencies
-        run: npm ci
-        
-      # Step 4: Build the site
+        run: |
+          # Prefer runner's local ~/.npm cache rather than remote cache
+          if [ -f package-lock.json ]; then
+            npm ci --prefer-offline --no-audit --no-fund
+          else
+            npm install --prefer-offline --no-audit --no-fund
+          fi
+
       - name: Build Docusaurus site
         run: npm run build
-        
-      # Step 5: Deploy locally (no SSH needed!)
+
       - name: Deploy to production
         run: |
+          set -euo pipefail
           echo "🚀 Starting local deployment at $(date)"
-          
-          # Copy built files to production location
-          # Since we're running on the same machine, we can copy directly
-          sudo cp -r build/* /home/nesto/nesto-docs-site/my-website/build/
-          
-          # Restart the production service
-          sudo systemctl restart docusaurus
-          
-          # Wait and verify service is running
+
+          # Sync built files atomically to the directory your service serves
+          sudo rsync -a --delete ./build/ /home/nesto/my-docusaurus-site/my-website/build/
+
+          # Restart and verify the service
+          sudo systemctl restart docusaurus-prod
           sleep 5
-          if systemctl is-active --quiet docusaurus; then
-            echo "✅ Deployment successful!"
-            echo "📊 Service status: $(systemctl is-active docusaurus)"
-          else
-            echo "❌ Service failed to start"
-            exit 1
-          fi
-          
-      # Step 6: Health check
-      - name: Verify deployment
+          systemctl is-active --quiet docusaurus-prod
+
+      - name: Health check
         run: |
+          set -euo pipefail
           echo "🔍 Running health checks..."
-          
-          # Test if the service is responding
-          sleep 10
-          if curl -f http://localhost:3000 > /dev/null 2>&1; then
-            echo "✅ Health check passed - site is responding"
-          else
-            echo "⚠️  Health check warning - site may not be responding"
-          fi
-          
-          echo "🎉 Deployment completed at $(date)"
+          # Fail the job if the site isn't responding
+          curl -f http://localhost:3000 > /dev/null
+          echo "✅ Health check passed"
