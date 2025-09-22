@@ -167,7 +167,7 @@ npm install -g serve
 
 Next I setup 'serve' as a system service.
 
-```bash title="/etc/systemd/system/docusaurus-prod.service"
+```bash title="/etc/systemd/system/docusaurus.service"
 [Unit]
 Description=Docusaurus Production Site
 After=network.target
@@ -227,10 +227,10 @@ npm start -- --host 0.0.0.0 --port 3001
 
 Before I setup a GitHub runner, I setup an SSH key to do the first `git push origin main`. For this step, I temporarily allowed port 22 on my pfSense firewall. I mainly did this for learning.
 
-I moved into the `my-website` directory.
+I moved into the my parent directory.
 
 ```bash
-cd ~/nesto-docs-site/my-website
+cd ~/nesto-docs-site
 ```
 
 Then created the GitHub Actions directory.
