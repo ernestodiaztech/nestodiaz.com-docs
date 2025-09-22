@@ -8,20 +8,20 @@ on:
 jobs:
   deploy:
     name: Deploy to Production Server
-    # You can keep just "self-hosted"; labels make targeting safer:
-    runs-on: [self-hosted, linux, X64, docu]
+    runs-on: [self-hosted, linux, X64, docu]  # adjust labels to your runner
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'        # removed: cache: 'npm'
+          node-version: '18'   # no remote npm caching on self-hosted
 
       - name: Install dependencies
         run: |
-          # Prefer runner's local ~/.npm cache rather than remote cache
+          set -euo pipefail
           if [ -f package-lock.json ]; then
             npm ci --prefer-offline --no-audit --no-fund
           else
@@ -35,11 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "🚀 Starting local deployment at $(date)"
-
-          # Sync built files atomically to the directory your service serves
           sudo rsync -a --delete ./build/ /home/nesto/my-docusaurus-site/my-website/build/
-
-          # Restart and verify the service
           sudo systemctl restart docusaurus-prod
           sleep 5
           systemctl is-active --quiet docusaurus-prod
@@ -47,7 +43,5 @@ jobs:
       - name: Health check
         run: |
           set -euo pipefail
-          echo "🔍 Running health checks..."
-          # Fail the job if the site isn't responding
           curl -f http://localhost:3000 > /dev/null
           echo "✅ Health check passed"
