@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'   # no remote npm caching on self-hosted
+          node-version: '18'
 
       - name: Install dependencies
         run: |
@@ -36,9 +36,9 @@ jobs:
           set -euo pipefail
           echo "🚀 Starting local deployment at $(date)"
           sudo rsync -a --delete ./build/ /home/nesto/nesto-docs-site/my-website/build/
-          sudo systemctl restart docusaurus-prod
+          sudo systemctl restart docusaurus
           sleep 5
-          systemctl is-active --quiet docusaurus-prod
+          systemctl is-active --quiet docusaurus
 
       - name: Health check
         run: |
