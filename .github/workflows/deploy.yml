@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     name: Deploy to Production Server
-    runs-on: [self-hosted, linux, X64, docu]  # adjust labels to your runner
+    runs-on: self-hosted
 
     steps:
       - name: Checkout repository
@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "🚀 Starting local deployment at $(date)"
-          sudo rsync -a --delete ./build/ /home/nesto/my-docusaurus-site/my-website/build/
+          sudo rsync -a --delete ./build/ /home/nesto/nesto-docs-site/my-website/build/
           sudo systemctl restart docusaurus-prod
           sleep 5
           systemctl is-active --quiet docusaurus-prod
