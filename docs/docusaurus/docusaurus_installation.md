@@ -36,23 +36,34 @@ Git comes already installed on Ubuntu 22.04, so I just verify it's the latest ve
 git --version
 ```
 
-I then create a user.
+## Git Setup
+
+I first make the directory to host the files.
+
+```bash
+mkdir ~/my-docusaurus-site
+cd ~/my-docusaurus-site
+```
+
+I then create a user for Git.
 
 ```bash
 git config --global user.name "Ernesto Diaz"
 git config --global user.email "admin@ernestodiaz.tech"
 ```
 
-## Installation
-
-I first make the directory to host the files.
+I then initialized Git.
 
 ```bash
-mkrdir ~/my-docusaurus-site
-cd ~/my-docusaurus-site
+git init
+git branch -M main
+git add -A
+git commit -m "Initial commit: empty workspace"
 ```
 
-Then create the Docusaurus site.
+## Installation
+
+Then create the Docusaurus site (within the `my-website/` directory).
 
 ```bash
 npx create-docusaurus@latest my-website classic
@@ -88,10 +99,28 @@ I then move into the directory `my-website`.
 cd my-website
 ```
 
+and created the `.gitignore` file so I don't commit junk.
+
+```bash title".gitignore"
+node_modules/
+.build/
+build/
+.cache/
+dist/
+.env
+```
+
+Then I commit this change.
+
+```bash
+git add -A
+git commit -m "Add Docusaurus scaffold"
+```
+
 From here I can verify if everything is currently working by running the development server.
 
 ```bash
-nmp start
+npm start
 ```
 
 It will take a 1-3 minutes, and then I can navigate to `http://localhost:3000` to see a preview of the website.
@@ -99,7 +128,7 @@ It will take a 1-3 minutes, and then I can navigate to `http://localhost:3000` t
 I then created the production build.
 
 ```bash
-nmp run build
+npm run build
 ```
 
 ### Serve
@@ -116,7 +145,7 @@ Serve is a convenient tool so you can preview the built site exactly as it will 
 I first installed serve globally.
 
 ```bash
-npm install -g server
+npm install -g serve
 ```
 
 :::note[Command Explanation]
@@ -161,7 +190,182 @@ Now when I want to run the development server, I will change the port number, si
 npm start -- --host 0.0.0.0 --port 3001
 ```
 
-## Cloudflare Tunnel
+### SSH (Optional)
+
+Before I setup a GitHub runner, I setup an SSH key to do the first `git push origin main`. For this step, I temporarily allowed port 22 on my pfSense firewall. I mainly did this for learning.
+
+I moved into the `my-website` directory.
+
+```bash
+cd ~/nesto-docs-site/my-website
+```
+
+Then created the GitHub Actions directory.
+
+```bash
+mkdir -p .github/workflows
+```
+
+I then created the `deploy.yml` file.
+
+```bash title="deploy.yml"
+name: Deploy Documentation
+
+# Trigger: Run this workflow when code is pushed to main branch
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Get the code from GitHub
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Build the site
+      - name: Build Docusaurus site
+        run: npm run build
+
+      # Step 5: Deploy to your server
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "Starting deployment..."
+            cd /home/nesto/nesto-docs-site/my-website
+
+            # Pull latest changes
+            git pull origin main
+
+            # Install/update dependencies
+            npm ci
+
+            # Build the site
+            npm run build
+
+            # Restart the service
+            sudo systemctl restart docusaurus
+
+            # Verify service is running
+            sleep 5
+            systemctl is-active docusaurus
+
+            echo "Deployment completed successfully!"
+
+      # Step 6: Verify deployment
+      - name: Health check
+        run: |
+          echo "Waiting for service to be ready..."
+          sleep 10
+          # You can add a curl check here if you have a public URL
+          # curl -f https://your-domain.com || exit 1
+```
+
+Next, I generated a dedicated SSH key for GitHub Actions.
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/github_actions_key -N ""
+```
+
+I then copied the private key, which will be needed for GitHug secrets. (I added it to my Bitwarden)
+
+```bash
+cat ~/.ssh/github_actions_key
+```
+
+I also copied the public key, which will be used for `authorized_keys`. (I also added this to my Bitwarden)
+
+```bash
+cat ~/.ssh/github_actions_key.pub
+```
+
+Then I added the public key to my `authorized_keys`.
+
+```bash
+cat ~/.ssh/github_actions_key.pub >> ~/.ssh/authorized_keys
+```
+
+Then set permissions.
+
+```bash
+chmod 600 ~/.ssh/authorized_keys
+chmod 700 ~/.ssh
+```
+
+:::info
+
+You can test they key by running:
+
+```bash
+ssh -i ~/.ssh/github_actions_key nesto@10.33.99.99 "echo 'SSH connection successful'"
+```
+
+:::
+
+Next, I needed to configure GitHub Secrets.
+
+I went to my repo, then clicked on `Settings` ➥ `Secrets and variables` ➥ `Actions` ➥ `New repository secret`.
+
+I created 3 separate secrets:
+
+1. **Secret 1**
+   - Name: SERVER_HOST
+   - Value: docs.nestodiaz.com
+2. **Secret 2**
+   - Name: SERVER_USER
+   - Value: nesto
+3. **Secret 3**
+   - Name: SSH_PRIVATE_KEY
+   - Value: I passed the private key I created earlier
+
+Next, I needed to allow the docusaurus service to restart without a password prompt.
+
+```bash
+sudo visudo
+```
+
+```bash title="visudo"
+nesto ALL=(ALL) NOPASSWD: /bin/systemctl restart docusaurus, /bin/systemctl status docusaurus, /bin/systemctl is-active docusaurus
+```
+
+I then added the workflow file to Git.
+
+```bash
+git add .github/workflows/deploy.yml
+```
+
+I then committed the workflow.
+
+```bash
+git commit -m "Add CI/CD workflow for automatic deployment"
+```
+
+Then pushed to GitHub.
+
+```bash
+git push origin main
+```
+
+After this completed successfully, I blocked port 22 and setup a GitHub runner.
 
 ## GitHub Runner
 
@@ -354,8 +558,32 @@ This is a safe way to edit the `sudoers` file.
 :::
 
 ```bash title="visudo"
-nesto ALL=(ALL) NOPASSWD: /bin/systemctl restart docusaurus
-nesto ALL=(ALL) NOPASSWD: /bin/systemctl status docusaurus
-nesto ALL=(ALL) NOPASSWD: /bin/systemctl is-active docusaurus
+nesto ALL=(ALL) NOPASSWD: /bin/systemctl restart docusaurus-prod
+nesto ALL=(ALL) NOPASSWD: /bin/systemctl status docusaurus-prod
+nesto ALL=(ALL) NOPASSWD: /bin/systemctl is-active docusaurus-prod
 nesto ALL=(ALL) NOPASSWD: /bin/cp -r * /home/nesto/nesto-docs-site/my-website/build/
 ```
+
+I then added the updated workflow.
+
+```bash
+git add .github/workflows/deploy.yml
+```
+
+Then commited the changes.
+
+```bash
+git commit -m "Update workflow to use self-hosted runner"
+```
+
+Then pushed to GitHub.
+
+```bash
+git push origin main
+```
+
+:::note
+
+You can monitor the deployment on GitHub by going to the `Actions` tab.
+
+:::
