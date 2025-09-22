@@ -2,7 +2,7 @@
 sidebar_position: 1
 ---
 
-# Docusaurus Documentation Platform with Automated CI/CD
+# 1. Docusaurus Documentation Platform with Automated CI/CD
 
 :::note[Summary]
 

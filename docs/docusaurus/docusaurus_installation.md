@@ -2,7 +2,7 @@
 sidebar_position: 2
 ---
 
-# Docusaurus Installation + Self-Hosted GitHub Runner
+# 2. Docusaurus Installation + Self-Hosted GitHub Runner
 
 This section goes over how I setup Docusaurus, a systemd service (via serve), Cloudflare Tunnel, and a GitHub self-hosted runner that deploys locally, so I don't have to expose port 22 on my pfSense firewall.
 
@@ -140,7 +140,7 @@ I then created the production build.
 npm run build
 ```
 
-### Serve
+## Serve
 
 :::info
 
@@ -223,7 +223,7 @@ Now when I want to run the development server, I will change the port number, si
 npm start -- --host 0.0.0.0 --port 3001
 ```
 
-### SSH (Optional)
+## SSH (Optional)
 
 Before I setup a GitHub runner, I setup an SSH key to do the first `git push origin main`. For this step, I temporarily allowed port 22 on my pfSense firewall. I mainly did this for learning.
 
@@ -465,7 +465,7 @@ To start the runner manually
 ./run.sh
 ```
 
-### Runner as a System Service
+## Runner as a System Service
 
 I moved to the `actions-runner` directory first.
 
@@ -501,7 +501,7 @@ sudo systemctl list-unit-files | grep actions.runner
 
 :::
 
-### Workflow
+## Workflow
 
 I now needed to modify the workflow file to use the GitHub runner.
 
