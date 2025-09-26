@@ -2,7 +2,7 @@
 sidebar_position: 4
 ---
 
-# Upgrading HA Zabbix
+# 3. Upgrading HA Zabbix
 
 Zabbix is a powerful open-source monitoring solution that can monitor various services, servers, and network devices. In this blog, I will show how I upgrade my cluster from version 7 to version 7.2, that way I have access to newer and better dashboard widgets.
 
