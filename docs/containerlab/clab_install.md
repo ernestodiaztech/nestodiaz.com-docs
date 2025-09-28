@@ -2,7 +2,9 @@
 sidebar_position: 1
 ---
 
-# 1. Installing Container Lab
+# 1. ContainerLab Setup and Ansible Integration
+
+Here I walk you through on how I set up ContainerLab and Ansible to build and automate containerized network labs. It covers installing the required tools, creating and testing a simple FRRouting-based topology, configuring Ansible with Docker-based connections, and running playbooks for connectivity checks and basic network configuration. 
 
 ## Network Overview
 
@@ -184,6 +186,57 @@ And the result will look like something like this:
 ```
 
 For containerized environments, I used Docker Exec instead of SSH for better reliability.
+
+:::note[Docker Exec]
+
+**The Technical Process:**
+
+```bash
+docker exec -it container_name command
+```
+
+What happens internally:
+
+1. Docker daemon receives the exec request
+2. Container runtime (containerd/runc) creates a new process inside the existing container's namespace
+3. Process isolation: The new process shares the container's filesystem, network, and process namespace
+4. Direct execution: Command runs as if you were inside the container
+5. Output returned: Results come back through Docker's API
+
+**Docker Exec Path:**
+
+```bash
+Your Terminal → Docker Client → Docker Daemon → Container Runtime → Container Process
+```
+
+1. No network layer: Direct API communication
+2. Namespace sharing: Inherits container's environment completely
+3. Process spawning: Creates new process in existing container
+4. Authentication: Uses Docker daemon permissions
+5. Overhead: Minimal - direct syscalls
+
+**SSH Path:**
+
+```bash
+Your Terminal → SSH Client → Network → Container SSH Daemon → Container Process
+```
+
+1. Network protocol: TCP connection with encryption
+2. Authentication layer: Username/password or keys
+3. SSH daemon: Requires sshd running inside container
+4. Session management: Full SSH session with environment setup
+5. Overhead: Network handshake, encryption, session management
+
+I'll be using a hybrid approach.
+
+- Ansible server uses SSH to reach Docker host
+- Then uses Docker exec to reach containers
+
+```bash title="Example Command"
+ssh containerlab-server "docker exec router1 vtysh -c 'show version'"
+```
+
+:::
 
 I tested direct container access to the routers on the ContainerLab host.
 
