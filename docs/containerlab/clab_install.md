@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # 1. ContainerLab Setup and Ansible Integration
 
-Here I walk you through on how I set up ContainerLab and Ansible to build and automate containerized network labs. It covers installing the required tools, creating and testing a simple FRRouting-based topology, configuring Ansible with Docker-based connections, and running playbooks for connectivity checks and basic network configuration. 
+Here I walk you through on how I set up ContainerLab and Ansible to build and automate containerized network labs. It covers installing the required tools, creating and testing a simple FRRouting-based topology, configuring Ansible with Docker-based connections, and running playbooks for connectivity checks and basic network configuration.
 
 ## Network Overview
 
@@ -135,6 +135,37 @@ mgmt:
   network: custom
   ipv4-subnet: 172.20.20.0/24
 ```
+
+<details>
+    <summary>YAML Explained</summary>
+
+- `kind: linux` - This tells containerlab this is a generic Linux container
+- `image: frrouting/frr:latest` - Uses the FRRouting container image for routing functionality
+- `mgmt-ipv4: 172.20.20.11` - Assigns a static management IP address for SSH/API access
+- `sysctl -w net.ipv4.ip_forward=1` - Enables IPv4 packet forwarding (required for routing)
+- `sysctl -w net.ipv6.conf.all.forwarding=1` - Enables IPv6 forwarding
+- `sleep 5` - Waits 5 seconds for FRR services to initialize
+- `sed -i "s/ospfd=no/ospfd=yes/" /etc/frr/daemons` - Enables the OSPF daemon in FRR config
+- `/usr/lib/frr/ospfd -d` - Starts the OSPF daemon in background mode
+
+- `alpine:latest` - Lightweight Linux distribution
+- `ip link add br0 type bridge` - Creates a Linux bridge named br0
+- `ip link set br0 up` - Activates the bridge
+- `for loop` - Adds any existing eth1, eth2, eth3 interfaces to the bridge, making sw1 act like a switch
+
+```bash
+links:
+- endpoints: ["r1:eth1", "sw1:eth1"]
+- endpoints: ["r2:eth1", "sw1:eth2"]
+- endpoints: ["host1:eth1", "sw1:eth3"]
+
+Topology:
+r1 ---- sw1 ---- r2
+         |
+       host1
+```
+
+</details>
 
 Then deployed the lab.
 
@@ -756,4 +787,54 @@ To destroy by lab name instead of file, run:
 
 ```bash
 sudo containerlab destroy --name basic-network
+```
+
+## Useful Commands
+
+### Docker Exec
+
+To connect to a router directly using Docker Exec:
+
+```bash
+docker exec -it clab-basic-network-r1 vtysh
+```
+
+or to run single commands:
+
+```bash
+docker exec clab-basic-network-r1 vtysh -c "configure terminal" -c "router ospf" -c "area 0 stub" -c "exit" -c "exit" -c "write"
+```
+
+and for system level changes:
+
+```bash
+docker exec -it clab-basic-network-r1 /bin/bash
+```
+
+### SSH
+
+To SSH to the router:
+
+```bash
+ssh root@172.20.20.11
+```
+
+From the Ansible server using the Docker host as a jump:
+
+```bash
+ssh -J nesto@10.33.99.12 root@172.20.20.11
+```
+
+### Ansible Ad-Hoc
+
+For single configuration commands:
+
+```bash
+ansible routers -m shell -a "vtysh -c 'configure terminal' -c 'interface eth1' -c 'ip ospf cost 100' -c 'exit' -c 'exit' -c 'write'" --limit r1
+```
+
+For an interactive session:
+
+```bash
+ansible routers -m shell -a "vtysh" --limit r1
 ```
