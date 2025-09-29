@@ -2,7 +2,7 @@
 sidebar_position: 3
 ---
 
-# 2. SAML Authentication for Zabbix
+# 2. SAML Authentication
 
 Zabbix is a powerful open-source monitoring solution that can monitor various services, servers, and network devices. In this blog, I will show how I setup Zabbix to allow SAML authentication with JIT user provisioning.
 
