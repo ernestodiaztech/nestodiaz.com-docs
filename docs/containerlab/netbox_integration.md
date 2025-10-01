@@ -331,3 +331,81 @@ sudo systemctl restart nginx
 Now Netbox is available on http://10.33.99.14
 
 ## NetBox Configuration
+
+**Create Site**
+
+I went to `Organization` > `Sites`
+
+- Added a new site
+  - Name: NestoDiaz.com
+  - Slug: nesto-diaz.com
+  - Status: Active
+
+**Create Rack**
+
+I went to `Racks` > `Rack`
+
+- Added a new rack
+  - Site: NestoDiaz.com
+  - Name: Virtual Rack 1
+  - Status: Active
+
+**Create Device Roles**
+
+I went to `Devices` > `Device Roles`
+
+- Added new device roles
+  - Router (color: blue)
+  - Switch (color: green)
+  - Host (color: grey
+
+**Create Manufacturer**
+
+I went to `Devices` > `Manufacturers`
+
+- Added new manufacturers
+  - FRRouting
+  - Alpine
+
+**Create Device Types**
+
+I went to `Devices` > `Device Types`
+
+- Added new device types
+  - FRR Router (manufacturer: FRRouting)
+  - Alpine Switch (manufacturer: Alpine)
+  - Alpine Host (manufacturer: Alpine)
+
+**Add Network Devices**
+
+I went to `Devices` > `Devices`
+
+insert table
+
+**Create VRFs**
+
+I went to `IPAM` > `VRFs`
+
+- Added new VRF
+  - Name: default
+  - Router Distinguisher: 65000:1
+
+**Create IP Prefixes**
+
+I went to `IPAM` > `Prefixes`
+
+- Added new prefixes
+  - 172.20.20.0/24 (Management Network)
+  - 10.1.1.0/24 (Router 1 LAN)
+  - 10.1.2.0/24 (Router 2 LAN)
+  - 10.1.100.0/24 (Host Network)
+
+**Assign IP Addresses**
+
+I went to `IPAM` > `IP Addresses`
+
+- Added IP addresses for each device
+  - r1: 172.20.20.11/24, 10.1.1.1/24
+  - r2: 172.20.20.12/24, 10.1.2.1/24
+  - sw1: 172.20.20.13/24
+  - host1: 172.20.20.14/24, 10.1.100.1/24

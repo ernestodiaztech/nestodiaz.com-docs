@@ -8,12 +8,14 @@ Here I walk you through on how I set up ContainerLab and Ansible to build and au
 
 ## Network Overview
 
-| Server       | IP          | Subnet        |
-| ------------ | ----------- | ------------- |
-| ContainerLab | 10.33.99.12 | 255.255.255.0 |
-| Ansible      | 10.33.99.13 | 255.255.255.0 |
+| Server       | IP          | Subnet        | Role                    |
+| ------------ | ----------- | ------------- | ----------------------- |
+| ContainerLab | 10.33.99.12 | 255.255.255.0 | Runs network containers |
+| Ansible      | 10.33.99.13 | 255.255.255.0 | Automation control node |
 
 ## ContainerLab Installation
+
+### Prerequisites
 
 First, I updated the system.
 
@@ -40,11 +42,19 @@ Then added my current user to the Docker group.
 sudo usermod -aG docker $USER
 ```
 
-Then ran instead of logging out and logging back in.
+I then applied the group membership without logging out.
 
 ```bash
 newgrp docker
 ```
+
+:::warning
+
+After running `newgrp docker`, you need to use it in the current terminal session. For permanent effect across all future sessions, log out and log back in.
+
+:::
+
+### Install ContainerLab
 
 Then installed Containerlab.
 
@@ -76,6 +86,8 @@ It should show something like:
 
 ## Testing
 
+### Basic Topology
+
 Next, I created a simple topology for testing.
 
 I made a directory for my topologies.
@@ -87,7 +99,7 @@ cd ~/containerlab/topologies
 
 Then made a basic network topology.
 
-```bash title="basic-network.clab.yml"
+```yaml title="basic-network.clab.yml"
 name: basic-network
 
 topology:
@@ -137,7 +149,9 @@ mgmt:
 ```
 
 <details>
-    <summary>YAML Explained</summary>
+    <summary>YAML Configuration Explained</summary>
+
+**Router Configuration**
 
 - `kind: linux` - This tells containerlab this is a generic Linux container
 - `image: frrouting/frr:latest` - Uses the FRRouting container image for routing functionality
@@ -148,10 +162,14 @@ mgmt:
 - `sed -i "s/ospfd=no/ospfd=yes/" /etc/frr/daemons` - Enables the OSPF daemon in FRR config
 - `/usr/lib/frr/ospfd -d` - Starts the OSPF daemon in background mode
 
+**Switch Configuration**
+
 - `alpine:latest` - Lightweight Linux distribution
 - `ip link add br0 type bridge` - Creates a Linux bridge named br0
 - `ip link set br0 up` - Activates the bridge
 - `for loop` - Adds any existing eth1, eth2, eth3 interfaces to the bridge, making sw1 act like a switch
+
+**Links**
 
 ```bash
 links:
@@ -159,7 +177,7 @@ links:
 - endpoints: ["r2:eth1", "sw1:eth2"]
 - endpoints: ["host1:eth1", "sw1:eth3"]
 
-Topology:
+Topology Visual:
 r1 ---- sw1 ---- r2
          |
        host1
@@ -172,6 +190,12 @@ Then deployed the lab.
 ```bash
 sudo containerlab deploy -t basic-network.clab.yml
 ```
+
+:::info
+
+Initial deployment takes 2-3 minutes as Docker pulls the required images. Subsequent deployments are much faster.
+
+:::
 
 I then checked the running containers.
 
@@ -307,6 +331,8 @@ Then installed Python 3 and pip.
 sudo apt install -y python3 python3-pip python3-venv
 ```
 
+### Python Virtual Environment
+
 Next I'll be creating a Python virtual environment for Ansible.
 
 :::note[What is a Python Virtual Environment?]
@@ -389,12 +415,32 @@ ansible-galaxy collection install ansible.posix
 ansible-galaxy collection install community.general
 ```
 
-Then created the Ansible project structure.
+Then verified the installation.
+
+```bash
+ansible --version
+```
+
+### Ansible Project Structure
+
+Next, I created the Ansible project structure.
 
 ```bash
 mkdir -p ~/network-automation/{playbooks,inventory,group_vars,host_vars,roles,files,templates}
 cd ~/network-automation
 ```
+
+:::info[Command Explanation]
+
+- `playbooks/` - Ansible playbooks (automation scripts)
+- `inventory/` - Host inventory files
+- `group_vars/` - Variables for groups of hosts
+- `host_vars/` - Variables for individual hosts
+- `roles/` - Reusable Ansible roles
+- `files/` - Static files to copy to hosts
+- `templates/` - Jinja2 templates for dynamic configs
+
+:::
 
 Next, I created the ansible.cfg file.
 
@@ -428,7 +474,7 @@ ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o StrictHostKeyChecking=
 
 Then, I created the inventory file.
 
-```bash title="inventory/hosts.yml"
+```yaml title="inventory/hosts.yml"
 ---
 all:
   children:
@@ -455,19 +501,53 @@ all:
         ansible_docker_extra_args: ""
 ```
 
-I now needed to see if my Ansible server can reach my Containerlab server.
+<details>
+    <summary>Inventory File Explained</summary>
+**Hierarchy:**
+
+```bash
+all
+└── containerlab_devices
+    ├── routers (r1, r2)
+    └── hosts (host1, sw1)
+```
+
+**Key Parameters:**
+
+- `ansible_host` - The Docker container name
+- `ansible_connection: community.docker.docker` - Uses Docker exec instead of SSH
+- `ansible_user: root` - Connects as root user inside containers
+- `ansible_docker_extra_args` - Additional Docker arguments (empty for now)
+
+**This structure allows you to:**
+
+- Target all devices: `--limit containerlab_devices`
+- Target only routers: `--limit routers`
+- Target specific device: `--limit r1`
+
+</details>
+
+### Setting Up Passwordless SSH
+
+First, I needed to see if my Ansible server can reach my Containerlab server.
 
 ```bash
 ping -c 3 10.33.99.12
 ```
 
-Next, I setup passwordless access, for testing.
+Next, I setup passwordless SSH, for testing.
 
 So, I generated an SSH key.
 
 ```bash
 ssh-keygen -t rsa -b 4096
 ```
+
+:::info
+
+Press Enter for all prompts to use default settings
+
+:::
 
 Then copied the key to my ContainerLab server.
 
@@ -494,11 +574,13 @@ CONTAINER ID   IMAGE                  COMMAND                  CREATED        ST
 
 :::
 
-## Playbooks
+## Creating Ansible Playbooks
+
+### Test Connectivity
 
 Next, I created a basic playbook for testing.
 
-```bash title="playbooks/test-connectivity.yml"
+```yaml title="playbooks/test-connectivity.yml"
 ---
 - name: Test connectivity to FRRouting devices
   hosts: routers
@@ -525,7 +607,9 @@ Next, I created a basic playbook for testing.
 ```
 
 <details>
-  <summary>Playbook File Explained</summary>
+  <summary>Playbook Explained</summary>
+
+**Play 1: FRRouting Devices**
 
 - `---` - YAML document start marker (required in Ansible)
 - `gather_facts: no` - Disables fact gathering. Faster startup since it will skip the automatic system discovery phase
@@ -533,6 +617,12 @@ Next, I created a basic playbook for testing.
 - `vtysh -c "show version"` - is the FRR CLI command
 - `debug` - Prints information to the console (like `echo` or `print`)
 - `msg: "{{ frr_version.stdout_lines }}` - The output from the previous command, split into lines
+
+**Play 2: Linux Hosts**
+
+- `ansible.builtin.raw` - Executes raw commands (works on Alpine without Python)
+- Uses shell commands to gather hostname and IP information
+- `changed_when: false` - Read-only operation, no changes made
 
 **Example Output**
 
@@ -583,6 +673,12 @@ export DOCKER_HOST=ssh://nesto@10.33.99.12
 ansible-playbook playbooks/test-connectivity.yml
 ```
 
+:::warning
+
+`export DOCKER_HOST=ssh://nesto@10.33.99.12` tells Ansible to connect to Docker on the remote ContainerLab server via SSH. You'll need to set this for every new terminal session, or add it to your `~/.bashrc` file.
+
+:::
+
 :::note[Example Output]
 
 ```bash
@@ -629,11 +725,11 @@ r2                         : ok=2    changed=1    unreachable=0    failed=0    s
 sw1                        : ok=0    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
 ```
 
-:::
+### Network Configuration
 
 Now I created another playbook to make some basic configuration changes on the routers.
 
-```bash title="playbooks/basic-config.yml"
+```yaml title="playbooks/basic-config.yml"
 ---
 - name: Configure FRRouting devices
   hosts: routers
@@ -680,8 +776,9 @@ Now I created another playbook to make some basic configuration changes on the r
 <details>
     <summary>YAML File Explained</summary>
 
-1. Play 1: Configures FRRouting routers (OSPF routing protocol)
-2. Play 2: Configures basic networking on host containers
+1. Play 1: Configures FRRouting Routers
+
+**OSPF Configuraition**
 
 - `-c 'configure terminal'` - Enter config mode
 - `-c 'router ospf'` - Enter OSPF router configuration
@@ -689,12 +786,25 @@ Now I created another playbook to make some basic configuration changes on the r
 - `-c 'exit'` - Exit OSPF config mode
 - `-c 'exit'` - Exit global config mode
 - `-c 'write'` - Save configuration
+
+**Interface Configuration**
+
 - `-c 'interface eth1'` - Configure interface eth1
 - `-c 'description Connection to switch'` - Add interface description
-- `-c 'ip address 10.1.X.1/24'` - Set IP address (X varies per router)
-- `-c 'exit'` - Exit interface config
-- `-c 'exit'` - Exit global config
-- `-c 'write'` - Save configuration
+
+**IP Address Configuration**
+
+- Uses Linux `ip` command (not FRR)
+- `|| true` prevents errors if IP already exists
+- `vars:` section assigns different IPs to each router
+- r1 gets 10.1.1.1, r2 gets 10.1.2.1
+
+1. Play 2: Configures Linux Hosts
+
+- Uses `raw` module (Alpine doesn't have Python)
+- Configures IP addresses on eth1 interface
+- Brings interface up
+- host1 gets 10.1.100.1, sw1 gets 10.1.100.2
 
 </details>
 
@@ -745,7 +855,38 @@ sw1                        : ok=1    changed=1    unreachable=0    failed=0    s
 
 :::
 
+### Verify Configuration
+
+After running the configuration playbook, I verified everything is working correctly.
+
+I checked OSPF neighbors.
+
+```json
+ssh nesto@10.33.99.12 "docker exec clab-basic-network-r1 vtysh -c 'show ip ospf neighbor'"
+```
+
+I then also checked IP addresses.
+
+```json
+ssh nesto@10.33.99.12 "docker exec clab-basic-network-r1 ip addr show eth1"
+ssh nesto@10.33.99.12 "docker exec clab-basic-network-r2 ip addr show eth1"
+```
+
+Then tested connectivity between routers.
+
+```json
+ssh nesto@10.33.99.12 "docker exec clab-basic-network-r1 ping -c 3 10.1.2.1"
+```
+
+:::note[Idempotency]
+
+Idempotency means you can run the same playbook multiple times without causing problems.
+
+:::
+
 ## Managing Lab Lifecycle
+
+### Stopping and Starting
 
 To stop and remove all lab containers, run the following on the ContainerLab server:
 
@@ -759,17 +900,27 @@ Or, if you're in the directory with only one .clab.yml file, run:
 sudo containerlab destroy
 ```
 
+To restart the lab:
+
+```bash
+sudo containerlab deploy -t basic-network.clab.yml
+```
+
+::: Checking Lab Status
+
 To check which labs are running, run:
 
 ```bash
 sudo containerlab inspect --all
 ```
 
-To very containers are stopped, run:
+To verify containers are stopped, run:
 
 ```bash
 docker ps
 ```
+
+### Cleanup Operations
 
 To cleanup everything (containers + leftover files) run:
 
@@ -789,6 +940,18 @@ To destroy by lab name instead of file, run:
 sudo containerlab destroy --name basic-network
 ```
 
+To remove all stopped containers, run:
+
+```bash
+docker container prune
+```
+
+To remove unused Docker images, run:
+
+```bash
+docker image prune -a
+```
+
 ## Useful Commands
 
 ### Docker Exec
@@ -799,16 +962,28 @@ To connect to a router directly using Docker Exec:
 docker exec -it clab-basic-network-r1 vtysh
 ```
 
-or to run single commands:
+To run multiple commands:
 
 ```bash
-docker exec clab-basic-network-r1 vtysh -c "configure terminal" -c "router ospf" -c "area 0 stub" -c "exit" -c "exit" -c "write"
+docker exec clab-basic-network-r1 vtysh \
+  -c "configure terminal" \
+  -c "router ospf" \
+  -c "area 0 stub" \
+  -c "exit" \
+  -c "exit" \
+  -c "write"
 ```
 
-and for system level changes:
+To access container shell for system level changes:
 
 ```bash
 docker exec -it clab-basic-network-r1 /bin/bash
+```
+
+To view container resource usage:
+
+```bash
+docker stats clab-basic-network-r1
 ```
 
 ### SSH
@@ -825,16 +1000,58 @@ From the Ansible server using the Docker host as a jump:
 ssh -J nesto@10.33.99.12 root@172.20.20.11
 ```
 
-### Ansible Ad-Hoc
-
-For single configuration commands:
+To copy files to container vis jump host:
 
 ```bash
-ansible routers -m shell -a "vtysh -c 'configure terminal' -c 'interface eth1' -c 'ip ospf cost 100' -c 'exit' -c 'exit' -c 'write'" --limit r1
+scp -J nesto@10.33.99.12 myfile.conf root@172.20.20.11:/etc/frr/
+```
+
+### Ansible Ad-Hoc
+
+To configure single interface:
+
+```bash
+ansible routers -m shell -a "vtysh -c 'configure terminal' \
+  -c 'interface eth1' \
+  -c 'ip ospf cost 100' \
+  -c 'exit' \
+  -c 'exit' \
+  -c 'write'" --limit r1
 ```
 
 For an interactive session:
 
 ```bash
 ansible routers -m shell -a "vtysh" --limit r1
+```
+
+### FRRouting Verification
+
+To check OSPF status:
+
+```bash
+bashdocker exec clab-basic-network-r1 vtysh -c "show ip ospf"
+docker exec clab-basic-network-r1 vtysh -c "show ip ospf neighbor"
+docker exec clab-basic-network-r1 vtysh -c "show ip ospf database"
+```
+
+To view routing table:
+
+```bash
+bashdocker exec clab-basic-network-r1 vtysh -c "show ip route"
+docker exec clab-basic-network-r1 vtysh -c "show ip route ospf"
+```
+
+To view Interface status:
+
+```bash
+bashdocker exec clab-basic-network-r1 vtysh -c "show interface"
+docker exec clab-basic-network-r1 vtysh -c "show interface eth1"
+```
+
+To view configuration:
+
+```bash
+bashdocker exec clab-basic-network-r1 vtysh -c "show running-config"
+docker exec clab-basic-network-r1 vtysh -c "show startup-config"
 ```
