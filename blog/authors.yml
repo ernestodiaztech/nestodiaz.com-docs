@@ -1,25 +1,9 @@
-yangshun:
-  name: Yangshun Tay
-  title: Ex-Meta Staff Engineer, Co-founder GreatFrontEnd
-  url: https://linkedin.com/in/yangshun
-  image_url: https://github.com/yangshun.png
+nesto:
+  name: Ernesto Diaz
+  title: Assistant IT Manager
+  url: https://www.linkedin.com/in/ernestodiaztx/
+  image_url: https://media.licdn.com/dms/image/v2/D5603AQFyaZFshSGxcw/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1671601128897?e=1762387200&v=beta&t=vY4bptl2rD1j21nJHA93jwGOuvEoxTdu4NAGoEVu2MI
   page: true
   socials:
-    x: yangshunz
-    linkedin: yangshun
-    github: yangshun
-    newsletter: https://www.greatfrontend.com
-
-slorber:
-  name: Sébastien Lorber
-  title: Docusaurus maintainer
-  url: https://sebastienlorber.com
-  image_url: https://github.com/slorber.png
-  page:
-    # customize the url of the author page at /blog/authors/<permalink>
-    permalink: '/all-sebastien-lorber-articles'
-  socials:
-    x: sebastienlorber
-    linkedin: sebastienlorber
-    github: slorber
-    newsletter: https://thisweekinreact.com
+    linkedin: ernestodiaztx
+    github: ernestodiaztech

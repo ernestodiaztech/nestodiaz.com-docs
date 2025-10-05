@@ -1,11 +1,11 @@
 ---
-slug: first-blog-post
-title: First Blog Post
-authors: [slorber, yangshun]
+slug: placeholder
+title: Placeholder Post
+authors: [nesto]
 tags: [hola, docusaurus]
 ---
 
-Lorem ipsum dolor sit amet...
+Temporary placeholder
 
 <!-- truncate -->
 
