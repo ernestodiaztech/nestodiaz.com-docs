@@ -146,7 +146,7 @@ const config = {
         copyright: `Copyright © ${new Date().getFullYear()} Nestodiaz.com`,
       },
       prism: {
-        theme: prismThemes.github,
+        theme: prismThemes.palenight,
         darkTheme: prismThemes.okaidia,
       },
     }),

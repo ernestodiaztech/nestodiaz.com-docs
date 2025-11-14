@@ -164,15 +164,6 @@ PING 172.20.20.33 (172.20.20.33) 56(84) bytes of data.
 64 bytes from 172.20.20.33: icmp_seq=7 ttl=64 time=0.089 ms
 ```
 
-On the Ubuntu server I had to install Python3, Pip, Paramiko and Netmiko.
-
-```bash
-sudo apt install python3
-sudo apt install python3-pip -y
-pip install paramiko
-pip install netmiko
-```
-
 To connect to the routers and switches I will run:
 
 ```bash
@@ -190,5 +181,14 @@ To connect to the Ubuntu servers I will run:
 
 ```bash
 docker exec -it clab-cisco-lab-ubuntu1 bash
+```
+
+On Ubuntu1 I installed Python3, Pip, Paramiko and Netmiko.
+
+```bash
+sudo apt install python3
+sudo apt install python3-pip -y
+pip install paramiko
+pip install netmiko
 ```
 
