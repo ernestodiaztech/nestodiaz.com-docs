@@ -70,7 +70,7 @@ The name of the ethernet interface (eno1) may be different.
 
 :::
 
-```bash
+```json
 * For Virtual Machine Manager Node 1, use Host Name: vmm01
 * For Virtual Machine Manager Node 2, use Host Name: vmm02
 * Click on the "Configure..." button
@@ -96,7 +96,7 @@ The name of the ethernet interface (eno1) may be different.
 
 6. Click on `Time & Date`, set the following:
 
-```bash
+```json
 * Select your timezone
 * Enable "Network Time"
 * Configure NTP servers as needed
@@ -105,14 +105,14 @@ The name of the ethernet interface (eno1) may be different.
 
 7. Click on `Installation Source`, set the following:
 
-```bash
+```json
 * Click on "Auto-detected installation media"
 * Click on the "Done" button to return
 ```
 
 8. Click on `Software Selection`, set the following:
 
-```bash
+```json
 * Select Base Environment: "Virtualization Host"
 
     1. Check: "Network File System Client"
@@ -126,7 +126,7 @@ The name of the ethernet interface (eno1) may be different.
 
 9. Click on Installation Destination, set the following:
 
-```bash
+```json
 * Use "Custom" Storage Configuration
 * Click on the "Done" button to continue
 * Configure using below Partition Table
@@ -164,7 +164,7 @@ The name of the ethernet interface (eno1) may be different.
 
 10. Click on KDUMP, set the following:
 
-```bash
+```json
 * Uncheck "Enable kdump"
 * Click on the "Done" button to return
 ```
@@ -177,7 +177,7 @@ The name of the ethernet interface (eno1) may be different.
 >
 >:::
 >
->```bash
+>```json
 >* Set a strong Root password
 >* Click on the "Done" button to return
 >```

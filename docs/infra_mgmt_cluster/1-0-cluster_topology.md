@@ -10,6 +10,8 @@ A properly configured DNS server that provides a Fully Qualified Domain Name (FQ
 
 These guides only cover a simple network and do not address redundant network interfaces, which are recommended for production environments.
 
+![Cluster](./cluster.png)
+
 ## Operating Systems
 
 These guides are written for Red Hat Enterprise Linux 8–based operating systems and are compatible with AlmaLinux 8 and Rocky Linux 8. Any OS-specific differences are noted where required.
@@ -20,7 +22,7 @@ These guides use the following hostname and IPv4 address mappings as examples, w
 
 Here's an example /etc/hosts file.
 
-```bash title="hosts"
+```json title="hosts"
 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
 
