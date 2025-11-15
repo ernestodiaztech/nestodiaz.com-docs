@@ -26,195 +26,250 @@ Instructions assume execution using the `root` account.
 
 :::
 
-First, I install the dependencies.
+>First, I install the dependencies.
+>
+>```json
+>dnf -y install tar openssl-devel cockpit cockpit-packagekit \
+>    cockpit-pcp cockpit-storaged cockpit-system cockpit-ws \
+>    cockpit-machines qemu-kvm qemu-kvm-block-iscsi \
+>    qemu-kvm-block-curl qemu-kvm-common qemu-kvm-block-ssh \
+>    qemu-kvm-block-iscsi lm_sensors lm_sensors-devel lm_sensors-libs \
+>    virt-install libosinfo
+>```
 
-```json
-dnf -y install tar openssl-devel cockpit cockpit-packagekit \
-    cockpit-pcp cockpit-storaged cockpit-system cockpit-ws \
-    cockpit-machines qemu-kvm qemu-kvm-block-iscsi \
-    qemu-kvm-block-curl qemu-kvm-common qemu-kvm-block-ssh \
-    qemu-kvm-block-iscsi lm_sensors lm_sensors-devel lm_sensors-libs \
-    virt-install libosinfo
-```
+>Then I enabled Cockpit.
+>
+>```yaml
+>systemctl enable --now cockpit.socket
+>firewall-cmd --zone=public --add-service=cockpit --permanent
+>systemctl reload firewalld
+>```
 
-Then I enabled Cockpit.
+>I then created `guest_images` storage pool.
+>
+>```yaml
+># Create KVM directories
+>mkdir -p /srv/kvm
+>mkdir    /srv/kvm/iso
+>mkdir    /srv/kvm/img
+>mkdir    /srv/tmp
+>
+># Create pools
+>virsh pool-define-as "guest_images" dir - - - - "/srv/kvm/img/"
+>virsh pool-build 'guest_images'
+>virsh pool-start 'guest_images'
+>virsh pool-autostart 'guest_images'
+>```
 
-```yaml
-systemctl enable --now cockpit.socket
-firewall-cmd --zone=public --add-service=cockpit --permanent
-systemctl reload firewalld
-```
+>I then created storage volumes.
+>
+>```json title="Virtual Machine Manager 1"
+>qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/idm.qcow2     96G
+>qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/gitlab.qcow2  2T
+>qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/slurm.qcow2   96G
+>qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/graylog.qcow2 96G
+>qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/ansible.qcow2 96G
+>```
+>
+>```json title="Virtual Machine Manager 2"
+>qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/indfuxdb.qcow2 96G
+>qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/grafana.qcow2  96G
+>qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/docker.qcow2   2T
+>qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/mirror.qcow2   96G
+>qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/vmg01.qcow2    96G
+>```
 
-I then created `guest_images` storage pool.
+>I then created a virtual machine bridge.
+>
+>:::important
+>
+>Verify the name of the ethernet interface and the IPv4 address. The interface name may be different than “eno1” and the IPv4 addresses should be the value for your environment.
+>
+>:::
+>
+>For Virtual Machine Manager 1:
+>
+>```json
+>IP_ADDRESS="10.33.99.151"
+>```
+>
+>For Virtual Machine Manager 2:
+>
+>```json
+>IP_ADDRESS="10.33.99.152"
+>```
+>
+>For both Virtual Machine Manager 1 and Virtual Machine Manager 2:
+>
+>```yaml
+># Bridge Configuration
+>ETHERNET_INTERFACE="eno1"
+>BRIDGE_NAME="vmbr0"
+>IP_DNS="192.168.1.1"
+>IP_GATEWAY="192.168.1.1"
+>
+># (Informational Only) List Interfaces
+>ip addr
+>
+># (Informational Only) List Active Network Connections
+>nmcli conn show
+>
+># Create a bridge interface
+>nmcli connection add type bridge con-name ${BRIDGE_NAME} ifname ${BRIDGE_NAME}
+>
+># Add static IP address
+>nmcli conn modify ${BRIDGE_NAME} ipv4.addresses "${IP_ADDRESS}/24"
+>nmcli conn modify ${BRIDGE_NAME} ipv4.gateway "${IP_GATEWAY}"
+>nmcli conn modify ${BRIDGE_NAME} ipv4.dns "${IP_DNS}"
+>nmcli conn modify ${BRIDGE_NAME} ipv4.method manual
+>
+># Assign the interfaces to the bridge
+>nmcli connection add type ethernet slave-type bridge autoconnect yes \
+>    con-name bridge-${BRIDGE_NAME} ifname ${ETHERNET_INTERFACE} master ${BRIDGE_NAME}
+>
+># Bring up or activate the bridge connection
+>nmcli conn up ${BRIDGE_NAME}
+>
+># Bring down wired connection
+>nmcli conn down ${ETHERNET_INTERFACE}
+>
+># (Informational Only) Display the network interfaces
+>nmcli device status
+>
+># (Informational Only) List Interfaces
+>ip addr
+>
+># (Informational Only) Show Bridge Details
+>nmcli -f bridge con show ${BRIDGE_NAME}
+>
+># Declaring the KVM Bridged Network
+>virsh net-list --all
+>
+>cat << 'EOL' > /tmp/bridge.xml
+><network>
+>  <name>vmbr0</name>
+>  <forward mode="bridge"/>
+>  <bridge name="vmbr0"/>
+></network>
+>EOL
+>
+>virsh net-define /tmp/bridge.xml
+>virsh net-start ${BRIDGE_NAME}
+>virsh net-autostart ${BRIDGE_NAME}
+>```
 
-```yaml
-# Create KVM directories
-mkdir -p /srv/kvm
-mkdir    /srv/kvm/iso
-mkdir    /srv/kvm/img
-mkdir    /srv/tmp
+>I then uploaded the guest ISO images.
+>
+>:::important
+>
+>The ISO file name will vary depending OS and version being used.
+>
+>:::
+>
+>```json
+>scp rhel-8.8-x86_64-dvd.iso root@vmm1.nestodiaz.com:/srv/kvm/iso/rhel-8.8-x86_64-dvd.iso
+>scp rhel-8.8-x86_64-dvd.iso root@vmm2.nestodidaz.com:/srv/kvm/iso/rhel-8.8-x86_64-dvd.iso
+>```
 
-# Create pools
-virsh pool-define-as "guest_images" dir - - - - "/srv/kvm/img/"
-virsh pool-build 'guest_images'
-virsh pool-start 'guest_images'
-virsh pool-autostart 'guest_images'
-```
+>I then suppressed negotiate headers.
+>
+>:::note
+>
+>This is optional and prevents falling back to HTML login boxes in Windows browsers.
+>
+>:::
+>
+>```json
+>sudo nano /etc/cockpit/cockpit.conf
+>```
+>
+>```json
+>[gssapi]
+>action = none
+>
+>[negotiate]
+>action = none
+>```
 
-I then created storage volumes.
+>I then rebooted the system.
+>
+>```json
+>sudo reboot now
+>```
 
-```json title="Virtual Machine Manager 1"
-qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/idm.qcow2     96G
-qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/gitlab.qcow2  2T
-qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/slurm.qcow2   96G
-qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/graylog.qcow2 96G
-qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/ansible.qcow2 96G
-```
-
-```json title="Virtual Machine Manager 2"
-qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/indfuxdb.qcow2 96G
-qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/grafana.qcow2  96G
-qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/docker.qcow2   2T
-qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/mirror.qcow2   96G
-qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/vmg01.qcow2    96G
-```
-
-I then created a virtual machine bridge.
-
-:::important
-
-Verify the name of the ethernet interface and the IPv4 address. The interface name may be different than “eno1” and the IPv4 addresses should be the value for your environment.
-
-:::
-
-For Virtual Machine Manager 1:
-
-```json
-IP_ADDRESS="10.33.99.151"
-```
-
-For Virtual Machine Manager 2:
-
-```json
-IP_ADDRESS="10.33.99.152"
-```
-
-For both Virtual Machine Manager 1 and Virtual Machine Manager 2:
-
-```yaml
-# Bridge Configuration
-ETHERNET_INTERFACE="eno1"
-BRIDGE_NAME="vmbr0"
-IP_DNS="192.168.1.1"
-IP_GATEWAY="192.168.1.1"
-
-# (Informational Only) List Interfaces
-ip addr
-
-# (Informational Only) List Active Network Connections
-nmcli conn show
-
-# Create a bridge interface
-nmcli connection add type bridge con-name ${BRIDGE_NAME} ifname ${BRIDGE_NAME}
-
-# Add static IP address
-nmcli conn modify ${BRIDGE_NAME} ipv4.addresses "${IP_ADDRESS}/24"
-nmcli conn modify ${BRIDGE_NAME} ipv4.gateway "${IP_GATEWAY}"
-nmcli conn modify ${BRIDGE_NAME} ipv4.dns "${IP_DNS}"
-nmcli conn modify ${BRIDGE_NAME} ipv4.method manual
-
-# Assign the interfaces to the bridge
-nmcli connection add type ethernet slave-type bridge autoconnect yes \
-    con-name bridge-${BRIDGE_NAME} ifname ${ETHERNET_INTERFACE} master ${BRIDGE_NAME}
-
-# Bring up or activate the bridge connection
-nmcli conn up ${BRIDGE_NAME}
-
-# Bring down wired connection
-nmcli conn down ${ETHERNET_INTERFACE}
-
-# (Informational Only) Display the network interfaces
-nmcli device status
-
-# (Informational Only) List Interfaces
-ip addr
-
-# (Informational Only) Show Bridge Details
-nmcli -f bridge con show ${BRIDGE_NAME}
-
-# Declaring the KVM Bridged Network
-virsh net-list --all
-
-cat << 'EOL' > /tmp/bridge.xml
-<network>
-  <name>vmbr0</name>
-  <forward mode="bridge"/>
-  <bridge name="vmbr0"/>
-</network>
-EOL
-
-virsh net-define /tmp/bridge.xml
-virsh net-start ${BRIDGE_NAME}
-virsh net-autostart ${BRIDGE_NAME}
-```
-
-I then uploaded the guest ISO images.
-
-:::important
-
-The ISO file name will vary depending OS and version being used.
-
-:::
-
-```json
-scp rhel-8.8-x86_64-dvd.iso root@vmm1.nestodiaz.com:/srv/kvm/iso/rhel-8.8-x86_64-dvd.iso
-scp rhel-8.8-x86_64-dvd.iso root@vmm2.nestodidaz.com:/srv/kvm/iso/rhel-8.8-x86_64-dvd.iso
-```
-
-I then suppressed negotiate headers.
-
-:::note
-
-This is optional and prevents falling back to HTML login boxes in Windows browsers.
-
-:::
-
-```json
-sudo nano /etc/cockpit/cockpit.conf
-```
-
-```json
-[gssapi]
-action = none
-
-[negotiate]
-action = none
-```
-
-I then rebooted the system.
-
-```json
-sudo reboot now
-```
-
-After the reboot, I logged into Cockpit.
-
+>After the reboot, I logged into Cockpit.
+>
 >Virtual Machine Manager 1: https://vmm01.nestodiaz.com:9090
 >
 >Virtual Machine Manager 2: https://vmm02.nestodiaz.com:9090
+>
+>![Cluster-01](./cluster-001.png)
 
-![Cluster-01](./cluster-001.png)
-
-Next, I created the virtual machine guests.
-
-:::info
-
-The next step will be repeated for all VMs hosted by Virtual Machine Manager 01 and Virtual Machine Manager 02 nodes.
-
-:::
-
+>Next, I created the virtual machine guests.
+>
+>:::info
+>
+>The next step will be repeated for all VMs hosted by Virtual Machine Manager 01 and Virtual Machine Manager 02 nodes.
+>
+>:::
+>
 >```json
 >* Click on the "Virtual Machines" link on the left of the page
 >```
 >
 >![Cluster-02](./cluster-001.png)
+
+>```json
+>* Click on the "Create VM" button on the right of the page
+>* Provide a name that matches the VM you are creating in all lower case characters
+>* In the "Installation type" drop-down select
+>  "Local install Media (ISO image or distro install tree)
+>* In the "Installation source" drop-down/box add the path to the ISO
+>  (ex. /srv/kvm/iso/rhel-8.8-x86_64-dvd.iso)
+>* In the "Operating system" drop-down/box add or select "Red Hat Enterprise Linux 8.8 (Ootpa)"
+>* In the "Storage" drop-down/box select "guest_images"
+>* In the "Volume" box select the appropriate VM guest image file (ex. idm.qcow2)
+>* In the "Memory" box select 16 GiB (see guides for the amount but typically it is 16GiB)
+>* Verify "Run unattended installation" *IS NOT* checked
+>* Verify "Immediately start VM" *IS NOT* checked
+>* Click "Create"
+>```
+>
+>![Cluster-03](./cluster-003.png)
+
+>```json
+>* Click on the name of the VM just created
+>```
+>
+>![Cluster-04](./cluster-004.png)
+
+>```json
+>* Click on the "edit" link next to "vCPUs"
+>```
+>
+>![Cluster-05](./cluster-005.png)
+
+>```json
+>* Change "vCPU maximum" to 4
+>* Change "vCPU count" to 4
+>* Change "Sockets" to 1
+>* Change "Cores per socket" to 4
+>* Change "Threads per core" to 1
+>* Click on "Apply"
+>```
+>
+>![Cluster-06](./cluster-006.png)
+
+>```json
+>* On the Virtual Machine details page...
+>* Verify "Run when host boots" is enabled
+>* Click on "Install" or "Run" ("Install" is shown on first run)
+>```
+>
+>![Cluster-07](./cluster-007.png)
+
+>```json
+>* Install the VM guest using the other guides
+>```
+>
+>![Cluster-08](./cluster-008.png)
