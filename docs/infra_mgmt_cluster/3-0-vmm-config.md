@@ -2,7 +2,7 @@
 sidebar_position: 3
 ---
 
-# 3. Virtual Machine Manager Configuration
+# 3. Virtual Machine Manager Deployment
 
 The following instructions are for configuring the Virtual Machine Managers.
 
