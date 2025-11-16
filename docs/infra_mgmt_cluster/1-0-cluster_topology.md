@@ -10,7 +10,7 @@ A properly configured DNS server that provides a Fully Qualified Domain Name (FQ
 
 These guides only cover a simple network and do not address redundant network interfaces, which are recommended for production environments.
 
-![Cluster](./cluster.png)
+![Cluster](./assets/cluster.png)
 
 ## Operating Systems
 

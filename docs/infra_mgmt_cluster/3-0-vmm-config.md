@@ -203,7 +203,7 @@ Instructions assume execution using the `root` account.
 >
 >Virtual Machine Manager 2: https://vmm02.nestodiaz.com:9090
 >
->![Cluster-01](./cluster-001.png)
+>![Cluster-01](./assets/cluster-001.png)
 
 >Next, I created the virtual machine guests.
 >
@@ -217,7 +217,7 @@ Instructions assume execution using the `root` account.
 >* Click on the "Virtual Machines" link on the left of the page
 >```
 >
->![Cluster-02](./cluster-001.png)
+>![Cluster-02](./assets/cluster-002.png)
 
 >```json
 >* Click on the "Create VM" button on the right of the page
@@ -235,19 +235,19 @@ Instructions assume execution using the `root` account.
 >* Click "Create"
 >```
 >
->![Cluster-03](./cluster-003.png)
+>![Cluster-03](./assets/cluster-003.png)
 
 >```json
 >* Click on the name of the VM just created
 >```
 >
->![Cluster-04](./cluster-004.png)
+>![Cluster-04](./assets/cluster-004.png)
 
 >```json
 >* Click on the "edit" link next to "vCPUs"
 >```
 >
->![Cluster-05](./cluster-005.png)
+>![Cluster-05](./assets/cluster-005.png)
 
 >```json
 >* Change "vCPU maximum" to 4
@@ -258,7 +258,7 @@ Instructions assume execution using the `root` account.
 >* Click on "Apply"
 >```
 >
->![Cluster-06](./cluster-006.png)
+>![Cluster-06](./assets/cluster-006.png)
 
 >```json
 >* On the Virtual Machine details page...
@@ -266,10 +266,10 @@ Instructions assume execution using the `root` account.
 >* Click on "Install" or "Run" ("Install" is shown on first run)
 >```
 >
->![Cluster-07](./cluster-007.png)
+>![Cluster-07](./assets/cluster-007.png)
 
 >```json
 >* Install the VM guest using the other guides
 >```
 >
->![Cluster-08](./cluster-008.png)
+>![Cluster-08](./assets/cluster-008.png)
