@@ -45,94 +45,96 @@ The following instructions are for installing the operating system on the bare-m
 
 ## OS Installation Steps
 
-1. Boot system using Red Hat Enterprise Linux (RHEL) 8.8 ISO
-2. Select `Install Red Hat Enterprise Linux 8.8` and press `ENTER`
-3. Select your language to use during the installation process and press `Continue`
+>1. Boot system using Red Hat Enterprise Linux (RHEL) 8.8 ISO
 
-:::note
+>2. Select `Install Red Hat Enterprise Linux 8.8` and press `ENTER`
 
-You should not see the `Installation Summary` GUI.
+>3. Select your language to use during the installation process and press `Continue`
 
-:::
+>:::note
+>
+>You should now see the `Installation Summary` GUI.
+>
+>:::
+>
+>4. Click on Language Support, set as needed:
+>
+>```bash
+>* Select your language to be used following installation
+>* Click on the "Done" button to return
+>```
 
-4. Click on Language Support, set as needed:
+>5. Click on `Network & Host Name`, set the following:
+>
+>:::note
+>
+>The name of the ethernet interface (eno1) may be different.
+>
+>:::
+>
+>```json
+>* For Virtual Machine Manager Node 1, use Host Name: vmm01
+>* For Virtual Machine Manager Node 2, use Host Name: vmm02
+>* Click on the "Configure..." button
+>
+>    1. Under the General tab, Check "Connect automatically with priority"
+>    2. Under the Ethernet tab, Set Link negotiation to "Automatic"
+>    3. Under the IPv4 Settings tab,
+>
+>        * Select Method: "Manual"
+>        * Set Address, Netmask, and Gateway
+>        * Set DNS servers
+>
+>    4. Under IPv6 Settings tab,
+>
+>        * Select Method "Link-Local Only"
+>
+>    5. Click on the "Save" button
+>
+>* Turn Ethernet (eno1) "On"
+>* Hit the "Apply" button to set the host name
+>* Click on the "Done" button to return
+>```
 
-```bash
-* Select your language to be used following installation
-* Click on the "Done" button to return
-```
+>6. Click on `Time & Date`, set the following:
+>
+>```json
+>* Select your timezone
+>* Enable "Network Time"
+>* Configure NTP servers as needed
+>* Click on the "Done" button to return
+>```
 
-5. Click on `Network & Host Name`, set the following:
+>7. Click on `Installation Source`, set the following:
+>
+>```json
+>* Click on "Auto-detected installation media"
+>* Click on the "Done" button to return
+>```
 
-:::note
+>8. Click on `Software Selection`, set the following:
+>
+>```json
+>* Select Base Environment: "Virtualization Host"
+>
+>    1. Check: "Network File System Client"
+>    2. Check: "Remote Manager for Linux"
+>    3. Check: "Virtualization Platform"
+>    4. Check: "Security Tools"
+>    5. Check: "System Tools"
+>
+>* Click on the "Done" button to return
+>```
 
-The name of the ethernet interface (eno1) may be different.
-
-:::
-
-```json
-* For Virtual Machine Manager Node 1, use Host Name: vmm01
-* For Virtual Machine Manager Node 2, use Host Name: vmm02
-* Click on the "Configure..." button
-
-    1. Under the General tab, Check "Connect automatically with priority"
-    2. Under the Ethernet tab, Set Link negotiation to "Automatic"
-    3. Under the IPv4 Settings tab,
-
-        * Select Method: "Manual"
-        * Set Address, Netmask, and Gateway
-        * Set DNS servers
-
-    4. Under IPv6 Settings tab,
-
-        * Select Method "Link-Local Only"
-
-    5. Click on the "Save" button
-
-* Turn Ethernet (eno1) "On"
-* Hit the "Apply" button to set the host name
-* Click on the "Done" button to return
-```
-
-6. Click on `Time & Date`, set the following:
-
-```json
-* Select your timezone
-* Enable "Network Time"
-* Configure NTP servers as needed
-* Click on the "Done" button to return
-```
-
-7. Click on `Installation Source`, set the following:
-
-```json
-* Click on "Auto-detected installation media"
-* Click on the "Done" button to return
-```
-
-8. Click on `Software Selection`, set the following:
-
-```json
-* Select Base Environment: "Virtualization Host"
-
-    1. Check: "Network File System Client"
-    2. Check: "Remote Manager for Linux"
-    3. Check: "Virtualization Platform"
-    4. Check: "Security Tools"
-    5. Check: "System Tools"
-
-* Click on the "Done" button to return
-```
-
-9. Click on Installation Destination, set the following:
-
-```json
-* Use "Custom" Storage Configuration
-* Click on the "Done" button to continue
-* Configure using below Partition Table
-* Click on the "Done" button to continue
-* Click on the "Accept Changes" button to continue
-```
+>9. Click on Installation Destination, set the following:
+>
+>```json
+>* Use "Custom" Storage Configuration
+>* Click on the "Done" button to continue
+>* Configure using below Partition Table
+>* Click on the "Done" button to continue
+>* Click on the "Accept Changes" button to continue
+>```
 
 >### Partition Table
 >
@@ -162,15 +164,15 @@ The name of the ethernet interface (eno1) may be different.
 >| /var/tmp         | 8 GiB | LVM                | OS (RAID-1)  | xfs                    |
 >| swap             | 2 GiB | LVM                | OS (RAID-1)  | swap                   |
 
-10. Click on KDUMP, set the following:
+>10. Click on KDUMP, set the following:
+>
+>```json
+>* Uncheck "Enable kdump"
+>* Click on the "Done" button to return
+>```
 
-```json
-* Uncheck "Enable kdump"
-* Click on the "Done" button to return
-```
-
-11. Click on `Root Password`, set the following:
-
+>11. Click on `Root Password`, set the following:
+>
 >:::note
 >
 >Only a root account will be created.
@@ -182,5 +184,6 @@ The name of the ethernet interface (eno1) may be different.
 >* Click on the "Done" button to return
 >```
 
-12. Click on the Begin Installation button to begin
-13. Click on the Reboot System button when installation has completed
+>12. Click on the Begin Installation button to begin
+
+>13. Click on the Reboot System button when installation has completed

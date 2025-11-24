@@ -22,49 +22,49 @@ When NFS mounting the `/home` directory ensure that only one mount for `/home` i
 
 :::
 
-1. Install required NFS client packages.
+>1. Install required NFS client packages.
+>
+>```json
+>dnf -y install nfs-utils
+>```
 
-```json
-dnf -y install nfs-utils
-```
+>2. Set the Domain Name:
+>
+>```json
+>sed -i 's/#Domain = local.domain.edu/Domain = nestodiaz.com/g' /etc/idmapd.conf
+>```
 
-2. Set the Domain Name:
+>3. Create local directories:
+>
+>```json
+>mkdir -p /app
+>mkdir -p /home
+>mkdir -p /scratch
+>```
 
-```json
-sed -i 's/#Domain = local.domain.edu/Domain = nestodiaz.com/g' /etc/idmapd.conf
-```
+>4. Add the NFS mounts to `/etc/fstab` to enable them at boot:
+>
+>```json
+>cat >> /etc/fstab <<EOL
+>
+># NFS Mounts
+>nfs01.nestodiaz.com:/srv/nfs/app     /app     nfs4 defaults,tcp,soft,nfsvers=4 0 0
+>nfs01.nestodiaz.com:/srv/nfs/home    /home    nfs4 defaults,tcp,soft,nfsvers=4 0 0
+>nfs01.nestodiaz.com:/srv/nfs/scratch /scratch nfs4 defaults,tcp,soft,nfsvers=4 0 0
+>
+>EOL
+>```
 
-3. Create local directories:
+>5. Reload the fstab in systemd:
+>
+>```json
+>systemctl daemon-reload
+>```
 
-```json
-mkdir -p /app
-mkdir -p /home
-mkdir -p /scratch
-```
-
-4. Add the NFS mounts to `/etc/fstab` to enable them at boot:
-
-```json
-cat >> /etc/fstab <<EOL
-
-# NFS Mounts
-nfs01.nestodiaz.com:/srv/nfs/app     /app     nfs4 defaults,tcp,soft,nfsvers=4 0 0
-nfs01.nestodiaz.com:/srv/nfs/home    /home    nfs4 defaults,tcp,soft,nfsvers=4 0 0
-nfs01.nestodiaz.com:/srv/nfs/scratch /scratch nfs4 defaults,tcp,soft,nfsvers=4 0 0
-
-EOL
-```
-
-5. Reload the fstab in systemd:
-
-```json
-systemctl daemon-reload
-```
-
-6. Mount the NFS paths:
-
-```json
-mount /app
-mount /home
-mount /scratch
-```
+>6. Mount the NFS paths:
+>
+>```json
+>mount /app
+>mount /home
+>mount /scratch
+>```

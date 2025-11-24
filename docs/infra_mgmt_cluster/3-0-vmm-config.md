@@ -26,7 +26,7 @@ Instructions assume execution using the `root` account.
 
 :::
 
->First, I install the dependencies.
+>1. Install dependencies:
 >
 >```json
 >dnf -y install tar openssl-devel cockpit cockpit-packagekit \
@@ -37,7 +37,7 @@ Instructions assume execution using the `root` account.
 >    virt-install libosinfo
 >```
 
->Then I enabled Cockpit.
+>2. Enable Cockpit:
 >
 >```yaml
 >systemctl enable --now cockpit.socket
@@ -45,7 +45,7 @@ Instructions assume execution using the `root` account.
 >systemctl reload firewalld
 >```
 
->I then created `guest_images` storage pool.
+>3. Create guest_images storage pool:
 >
 >```yaml
 ># Create KVM directories
@@ -61,7 +61,7 @@ Instructions assume execution using the `root` account.
 >virsh pool-autostart 'guest_images'
 >```
 
->I then created storage volumes.
+>4. Create storage volumes:
 >
 >```json title="Virtual Machine Manager 1"
 >qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/idm.qcow2     96G
@@ -79,7 +79,7 @@ Instructions assume execution using the `root` account.
 >qemu-img create -f qcow2 -o preallocation=off /srv/kvm/img/vmg01.qcow2    96G
 >```
 
->I then created a virtual machine bridge.
+>5. Create Virtual Machine Bridge:
 >
 >:::important
 >
@@ -158,7 +158,7 @@ Instructions assume execution using the `root` account.
 >virsh net-autostart ${BRIDGE_NAME}
 >```
 
->I then uploaded the guest ISO images.
+>6. Upload Guest ISO Images:
 >
 >:::important
 >
@@ -171,7 +171,7 @@ Instructions assume execution using the `root` account.
 >scp rhel-8.8-x86_64-dvd.iso root@vmm2.nestodidaz.com:/srv/kvm/iso/rhel-8.8-x86_64-dvd.iso
 >```
 
->I then suppressed negotiate headers.
+>7. Suppress Negotiate Headers:
 >
 >:::note
 >
@@ -191,13 +191,13 @@ Instructions assume execution using the `root` account.
 >action = none
 >```
 
->I then rebooted the system.
+>8. Reboot system:
 >
 >```json
 >sudo reboot now
 >```
 
->After the reboot, I logged into Cockpit.
+>9. Log into Cockpit:
 >
 >Virtual Machine Manager 1: https://vmm01.nestodiaz.com:9090
 >
@@ -205,7 +205,7 @@ Instructions assume execution using the `root` account.
 >
 >![Cluster-01](./assets/cluster-001.png)
 
->Next, I created the virtual machine guests.
+>10. Create the Virtual Machine Guests:
 >
 >:::info
 >
